@@ -1,0 +1,256 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		100000000000000000000001 /* RunStuffApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* RunStuffApp.swift */; };
+		100000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* AppModel.swift */; };
+		100000000000000000000003 /* JobEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* JobEditorView.swift */; };
+		100000000000000000000004 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* NotificationService.swift */; };
+		100000000000000000000005 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* RootView.swift */; };
+		100000000000000000000006 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000006 /* StatusItemController.swift */; };
+		100000000000000000000007 /* TerminalWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000007 /* TerminalWindowController.swift */; };
+		100000000000000000000008 /* AttachServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000009 /* AttachServer.swift */; };
+		100000000000000000000009 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C00000000000000000000004 /* Sparkle */; };
+		10000000000000000000000A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000B /* main.swift */; };
+		100000000000000000000011 /* ExitStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000011 /* ExitStatus.swift */; };
+		100000000000000000000012 /* JobRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000012 /* JobRuntime.swift */; };
+		100000000000000000000013 /* OutputSpool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000013 /* OutputSpool.swift */; };
+		100000000000000000000014 /* ProcessTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000014 /* ProcessTable.swift */; };
+		100000000000000000000015 /* PTYSpawner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000015 /* PTYSpawner.swift */; };
+		100000000000000000000016 /* RuntimeEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000016 /* RuntimeEvent.swift */; };
+		100000000000000000000017 /* ShellMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000017 /* ShellMode.swift */; };
+		100000000000000000000018 /* SpawnEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000018 /* SpawnEnvironment.swift */; };
+		100000000000000000000019 /* SpawnSpec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000019 /* SpawnSpec.swift */; };
+		10000000000000000000001A /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001A /* Job.swift */; };
+		10000000000000000000001B /* ConfigStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001B /* ConfigStore.swift */; };
+		10000000000000000000001C /* OutputBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001C /* OutputBuffer.swift */; };
+		10000000000000000000001D /* MetricsSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001D /* MetricsSampler.swift */; };
+		10000000000000000000001E /* RuntimeRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001E /* RuntimeRegistry.swift */; };
+		10000000000000000000001F /* Supervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000001F /* Supervisor.swift */; };
+		100000000000000000000020 /* CommandDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000020 /* CommandDiagnostics.swift */; };
+		10000000000000000000002B /* AttachProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002B /* AttachProtocol.swift */; };
+		10000000000000000000002C /* KeychainEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002C /* KeychainEnvironment.swift */; };
+		10000000000000000000002D /* UnixSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002D /* UnixSocket.swift */; };
+		100000000000000000000021 /* Check.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000021 /* Check.swift */; };
+		100000000000000000000022 /* Harness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000022 /* Harness.swift */; };
+		100000000000000000000023 /* Manual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000023 /* Manual.swift */; };
+		100000000000000000000024 /* Preconditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000024 /* Preconditions.swift */; };
+		100000000000000000000025 /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000025 /* Recorder.swift */; };
+		100000000000000000000026 /* Scenarios+Basic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000026 /* Scenarios+Basic.swift */; };
+		100000000000000000000027 /* Scenarios+Drain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000027 /* Scenarios+Drain.swift */; };
+		100000000000000000000028 /* Scenarios+Process.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000028 /* Scenarios+Process.swift */; };
+		100000000000000000000029 /* Scenarios+Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000029 /* Scenarios+Shell.swift */; };
+		10000000000000000000002A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000002A /* main.swift */; };
+		100000000000000000000031 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000031 /* main.c */; };
+		100000000000000000000041 /* RunStuffCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000041 /* RunStuffCoreTests.swift */; };
+		100000000000000000000042 /* ConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000042 /* ConfigStoreTests.swift */; };
+		100000000000000000000043 /* OutputBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000043 /* OutputBufferTests.swift */; };
+		100000000000000000000044 /* SupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000044 /* SupervisorTests.swift */; };
+		100000000000000000000045 /* CommandDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000045 /* CommandDiagnosticsTests.swift */; };
+		100000000000000000000051 /* libRunStuffCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 300000000000000000000002 /* libRunStuffCore.a */; };
+		100000000000000000000052 /* libRunStuffCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 300000000000000000000002 /* libRunStuffCore.a */; };
+		100000000000000000000053 /* libRunStuffCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 300000000000000000000002 /* libRunStuffCore.a */; };
+		100000000000000000000054 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 200000000000000000000051 /* XCTest.framework */; };
+		100000000000000000000055 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = C00000000000000000000002 /* SwiftTerm */; };
+		100000000000000000000056 /* libRunStuffCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 300000000000000000000002 /* libRunStuffCore.a */; };
+		100000000000000000000057 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* Security.framework */; };
+		100000000000000000000058 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* Security.framework */; };
+		100000000000000000000059 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* Security.framework */; };
+		10000000000000000000005A /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000A /* Security.framework */; };
+		100000000000000000000061 /* runstuff-tty-helper in Copy Helper */ = {isa = PBXBuildFile; fileRef = 300000000000000000000004 /* runstuff-tty-helper */; };
+		100000000000000000000063 /* runstuff in Copy Helper */ = {isa = PBXBuildFile; fileRef = 300000000000000000000006 /* runstuff */; };
+		100000000000000000000062 /* RunStuffError.wav in Resources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000008 /* RunStuffError.wav */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		400000000000000000000001 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000002; remoteInfo = RunStuffCore; };
+		400000000000000000000002 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000004; remoteInfo = "runstuff-tty-helper"; };
+		400000000000000000000003 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000002; remoteInfo = RunStuffCore; };
+		400000000000000000000004 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000004; remoteInfo = "runstuff-tty-helper"; };
+		400000000000000000000005 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000002; remoteInfo = RunStuffCore; };
+		400000000000000000000006 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000002; remoteInfo = RunStuffCore; };
+		400000000000000000000007 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 900000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 800000000000000000000006; remoteInfo = RunStuffCLI; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		600000000000000000000006 /* Copy Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (100000000000000000000061 /* runstuff-tty-helper in Copy Helper */, 100000000000000000000063 /* runstuff in Copy Helper */, );
+			name = "Copy Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		200000000000000000000001 /* RunStuffApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunStuffApp.swift; sourceTree = "<group>"; };
+		200000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		200000000000000000000003 /* JobEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobEditorView.swift; sourceTree = "<group>"; };
+		200000000000000000000004 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		200000000000000000000005 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		200000000000000000000006 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
+		200000000000000000000007 /* TerminalWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalWindowController.swift; sourceTree = "<group>"; };
+		200000000000000000000008 /* RunStuffError.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = RunStuffError.wav; sourceTree = "<group>"; };
+		200000000000000000000009 /* AttachServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachServer.swift; sourceTree = "<group>"; };
+		20000000000000000000000A /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		20000000000000000000000B /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		200000000000000000000011 /* ExitStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExitStatus.swift; sourceTree = "<group>"; };
+		200000000000000000000012 /* JobRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobRuntime.swift; sourceTree = "<group>"; };
+		200000000000000000000013 /* OutputSpool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputSpool.swift; sourceTree = "<group>"; };
+		200000000000000000000014 /* ProcessTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessTable.swift; sourceTree = "<group>"; };
+		200000000000000000000015 /* PTYSpawner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSpawner.swift; sourceTree = "<group>"; };
+		200000000000000000000016 /* RuntimeEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeEvent.swift; sourceTree = "<group>"; };
+		200000000000000000000017 /* ShellMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellMode.swift; sourceTree = "<group>"; };
+		200000000000000000000018 /* SpawnEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnEnvironment.swift; sourceTree = "<group>"; };
+		200000000000000000000019 /* SpawnSpec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnSpec.swift; sourceTree = "<group>"; };
+		20000000000000000000001A /* Job.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Job.swift; sourceTree = "<group>"; };
+		20000000000000000000001B /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
+		20000000000000000000001C /* OutputBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBuffer.swift; sourceTree = "<group>"; };
+		20000000000000000000001D /* MetricsSampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsSampler.swift; sourceTree = "<group>"; };
+		20000000000000000000001E /* RuntimeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeRegistry.swift; sourceTree = "<group>"; };
+		20000000000000000000001F /* Supervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supervisor.swift; sourceTree = "<group>"; };
+		200000000000000000000020 /* CommandDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDiagnostics.swift; sourceTree = "<group>"; };
+		20000000000000000000002B /* AttachProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachProtocol.swift; sourceTree = "<group>"; };
+		20000000000000000000002C /* KeychainEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainEnvironment.swift; sourceTree = "<group>"; };
+		20000000000000000000002D /* UnixSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnixSocket.swift; sourceTree = "<group>"; };
+		200000000000000000000021 /* Check.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Check.swift; sourceTree = "<group>"; };
+		200000000000000000000022 /* Harness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Harness.swift; sourceTree = "<group>"; };
+		200000000000000000000023 /* Manual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Manual.swift; sourceTree = "<group>"; };
+		200000000000000000000024 /* Preconditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preconditions.swift; sourceTree = "<group>"; };
+		200000000000000000000025 /* Recorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recorder.swift; sourceTree = "<group>"; };
+		200000000000000000000026 /* Scenarios+Basic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scenarios+Basic.swift"; sourceTree = "<group>"; };
+		200000000000000000000027 /* Scenarios+Drain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scenarios+Drain.swift"; sourceTree = "<group>"; };
+		200000000000000000000028 /* Scenarios+Process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scenarios+Process.swift"; sourceTree = "<group>"; };
+		200000000000000000000029 /* Scenarios+Shell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Scenarios+Shell.swift"; sourceTree = "<group>"; };
+		20000000000000000000002A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		200000000000000000000031 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		200000000000000000000041 /* RunStuffCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunStuffCoreTests.swift; sourceTree = "<group>"; };
+		200000000000000000000042 /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
+		200000000000000000000043 /* OutputBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputBufferTests.swift; sourceTree = "<group>"; };
+		200000000000000000000044 /* SupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupervisorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000045 /* CommandDiagnosticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDiagnosticsTests.swift; sourceTree = "<group>"; };
+		200000000000000000000051 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		300000000000000000000001 /* RunStuff.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunStuff.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000002 /* libRunStuffCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRunStuffCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000003 /* runstuff-phase1-fixtures */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-phase1-fixtures"; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000004 /* runstuff-tty-helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-tty-helper"; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000005 /* RunStuffCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunStuffCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000006 /* runstuff-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		600000000000000000000011 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000051 /* libRunStuffCore.a in Frameworks */, 100000000000000000000055 /* SwiftTerm in Frameworks */, 100000000000000000000009 /* Sparkle in Frameworks */, 100000000000000000000057 /* Security.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000012 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000013 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000052 /* libRunStuffCore.a in Frameworks */, 100000000000000000000058 /* Security.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000014 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000015 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000053 /* libRunStuffCore.a in Frameworks */, 100000000000000000000054 /* XCTest.framework in Frameworks */, 100000000000000000000059 /* Security.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000016 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000056 /* libRunStuffCore.a in Frameworks */, 10000000000000000000005A /* Security.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		500000000000000000000001 = {isa = PBXGroup; children = (500000000000000000000004 /* RunStuff */, 500000000000000000000009 /* RunStuffCLI */, 500000000000000000000005 /* RunStuffCore */, 500000000000000000000006 /* Phase1Fixtures */, 500000000000000000000007 /* TTYHelper */, 500000000000000000000008 /* RunStuffCoreTests */, 500000000000000000000003 /* Products */, 200000000000000000000051 /* XCTest.framework */, 20000000000000000000000A /* Security.framework */, ); sourceTree = "<group>"; };
+		500000000000000000000003 /* Products */ = {isa = PBXGroup; children = (300000000000000000000001 /* RunStuff.app */, 300000000000000000000006 /* runstuff-cli */, 300000000000000000000002 /* libRunStuffCore.a */, 300000000000000000000003 /* runstuff-phase1-fixtures */, 300000000000000000000004 /* runstuff-tty-helper */, 300000000000000000000005 /* RunStuffCoreTests.xctest */, ); name = Products; sourceTree = "<group>"; };
+		500000000000000000000004 /* RunStuff */ = {isa = PBXGroup; children = (200000000000000000000009 /* AttachServer.swift */, 200000000000000000000002 /* AppModel.swift */, 200000000000000000000003 /* JobEditorView.swift */, 200000000000000000000004 /* NotificationService.swift */, 200000000000000000000005 /* RootView.swift */, 200000000000000000000001 /* RunStuffApp.swift */, 200000000000000000000008 /* RunStuffError.wav */, 200000000000000000000006 /* StatusItemController.swift */, 200000000000000000000007 /* TerminalWindowController.swift */, ); path = RunStuff; sourceTree = SOURCE_ROOT; };
+		500000000000000000000005 /* RunStuffCore */ = {isa = PBXGroup; children = (20000000000000000000002B /* AttachProtocol.swift */, 200000000000000000000020 /* CommandDiagnostics.swift */, 20000000000000000000001B /* ConfigStore.swift */, 200000000000000000000011 /* ExitStatus.swift */, 20000000000000000000001A /* Job.swift */, 200000000000000000000012 /* JobRuntime.swift */, 20000000000000000000002C /* KeychainEnvironment.swift */, 20000000000000000000001D /* MetricsSampler.swift */, 20000000000000000000001C /* OutputBuffer.swift */, 200000000000000000000013 /* OutputSpool.swift */, 200000000000000000000014 /* ProcessTable.swift */, 200000000000000000000015 /* PTYSpawner.swift */, 200000000000000000000016 /* RuntimeEvent.swift */, 20000000000000000000001E /* RuntimeRegistry.swift */, 200000000000000000000017 /* ShellMode.swift */, 200000000000000000000018 /* SpawnEnvironment.swift */, 200000000000000000000019 /* SpawnSpec.swift */, 20000000000000000000001F /* Supervisor.swift */, 20000000000000000000002D /* UnixSocket.swift */, ); path = RunStuffCore; sourceTree = SOURCE_ROOT; };
+		500000000000000000000009 /* RunStuffCLI */ = {isa = PBXGroup; children = (20000000000000000000000B /* main.swift */, ); path = RunStuffCLI; sourceTree = SOURCE_ROOT; };
+		500000000000000000000006 /* Phase1Fixtures */ = {isa = PBXGroup; children = (200000000000000000000021 /* Check.swift */, 200000000000000000000022 /* Harness.swift */, 200000000000000000000023 /* Manual.swift */, 200000000000000000000024 /* Preconditions.swift */, 200000000000000000000025 /* Recorder.swift */, 200000000000000000000026 /* Scenarios+Basic.swift */, 200000000000000000000027 /* Scenarios+Drain.swift */, 200000000000000000000028 /* Scenarios+Process.swift */, 200000000000000000000029 /* Scenarios+Shell.swift */, 20000000000000000000002A /* main.swift */, ); path = spike/Sources/runstuff-spike; sourceTree = SOURCE_ROOT; };
+		500000000000000000000007 /* TTYHelper */ = {isa = PBXGroup; children = (200000000000000000000031 /* main.c */, ); path = RunStuffTTYHelper; sourceTree = SOURCE_ROOT; };
+		500000000000000000000008 /* RunStuffCoreTests */ = {isa = PBXGroup; children = (200000000000000000000045 /* CommandDiagnosticsTests.swift */, 200000000000000000000042 /* ConfigStoreTests.swift */, 200000000000000000000043 /* OutputBufferTests.swift */, 200000000000000000000041 /* RunStuffCoreTests.swift */, 200000000000000000000044 /* SupervisorTests.swift */, ); path = RunStuffCoreTests; sourceTree = SOURCE_ROOT; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		800000000000000000000001 /* RunStuff */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000011 /* Build configuration list for PBXNativeTarget "RunStuff" */; buildPhases = (600000000000000000000001 /* Sources */, 600000000000000000000011 /* Frameworks */, 600000000000000000000006 /* Copy Helper */, 600000000000000000000007 /* Resources */, ); buildRules = (); dependencies = (A00000000000000000000001 /* PBXTargetDependency */, A00000000000000000000002 /* PBXTargetDependency */, A00000000000000000000007 /* PBXTargetDependency */, ); name = RunStuff; packageProductDependencies = (C00000000000000000000002 /* SwiftTerm */, C00000000000000000000004 /* Sparkle */, ); productName = RunStuff; productReference = 300000000000000000000001 /* RunStuff.app */; productType = "com.apple.product-type.application"; };
+		800000000000000000000002 /* RunStuffCore */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000012 /* Build configuration list for PBXNativeTarget "RunStuffCore" */; buildPhases = (600000000000000000000002 /* Sources */, 600000000000000000000012 /* Frameworks */, ); buildRules = (); dependencies = (); name = RunStuffCore; productName = RunStuffCore; productReference = 300000000000000000000002 /* libRunStuffCore.a */; productType = "com.apple.product-type.library.static"; };
+		800000000000000000000003 /* RunStuffPhase1Fixtures */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffPhase1Fixtures" */; buildPhases = (600000000000000000000003 /* Sources */, 600000000000000000000013 /* Frameworks */, ); buildRules = (); dependencies = (A00000000000000000000003 /* PBXTargetDependency */, A00000000000000000000004 /* PBXTargetDependency */, ); name = RunStuffPhase1Fixtures; productName = "runstuff-phase1-fixtures"; productReference = 300000000000000000000003 /* runstuff-phase1-fixtures */; productType = "com.apple.product-type.tool"; };
+		800000000000000000000004 /* runstuff-tty-helper */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000014 /* Build configuration list for PBXNativeTarget "runstuff-tty-helper" */; buildPhases = (600000000000000000000004 /* Sources */, 600000000000000000000014 /* Frameworks */, ); buildRules = (); dependencies = (); name = "runstuff-tty-helper"; productName = "runstuff-tty-helper"; productReference = 300000000000000000000004 /* runstuff-tty-helper */; productType = "com.apple.product-type.tool"; };
+		800000000000000000000005 /* RunStuffCoreTests */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000015 /* Build configuration list for PBXNativeTarget "RunStuffCoreTests" */; buildPhases = (600000000000000000000005 /* Sources */, 600000000000000000000015 /* Frameworks */, ); buildRules = (); dependencies = (A00000000000000000000005 /* PBXTargetDependency */, ); name = RunStuffCoreTests; productName = RunStuffCoreTests; productReference = 300000000000000000000005 /* RunStuffCoreTests.xctest */; productType = "com.apple.product-type.bundle.unit-test"; };
+		800000000000000000000006 /* RunStuffCLI */ = {isa = PBXNativeTarget; buildConfigurationList = 700000000000000000000016 /* Build configuration list for PBXNativeTarget "RunStuffCLI" */; buildPhases = (600000000000000000000008 /* Sources */, 600000000000000000000016 /* Frameworks */, ); buildRules = (); dependencies = (A00000000000000000000006 /* PBXTargetDependency */, ); name = RunStuffCLI; productName = "runstuff-cli"; productReference = 300000000000000000000006 /* runstuff-cli */; productType = "com.apple.product-type.tool"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		900000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2660; LastUpgradeCheck = 2660; TargetAttributes = {800000000000000000000001 = {CreatedOnToolsVersion = 26.6; }; 800000000000000000000002 = {CreatedOnToolsVersion = 26.6; }; 800000000000000000000003 = {CreatedOnToolsVersion = 26.6; }; 800000000000000000000004 = {CreatedOnToolsVersion = 26.6; }; 800000000000000000000005 = {CreatedOnToolsVersion = 26.6; TestTargetID = 800000000000000000000001; }; }; };
+			buildConfigurationList = 700000000000000000000001 /* Build configuration list for PBXProject "RunStuff" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base, );
+			mainGroup = 500000000000000000000001;
+			packageReferences = (C00000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */, C00000000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */, );
+			productRefGroup = 500000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (800000000000000000000001 /* RunStuff */, 800000000000000000000006 /* runstuff */, 800000000000000000000002 /* RunStuffCore */, 800000000000000000000003 /* RunStuffPhase1Fixtures */, 800000000000000000000004 /* runstuff-tty-helper */, 800000000000000000000005 /* RunStuffCoreTests */, );
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		600000000000000000000007 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000062 /* RunStuffError.wav in Resources */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		600000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000008 /* AttachServer.swift in Sources */, 100000000000000000000002 /* AppModel.swift in Sources */, 100000000000000000000003 /* JobEditorView.swift in Sources */, 100000000000000000000004 /* NotificationService.swift in Sources */, 100000000000000000000005 /* RootView.swift in Sources */, 100000000000000000000001 /* RunStuffApp.swift in Sources */, 100000000000000000000006 /* StatusItemController.swift in Sources */, 100000000000000000000007 /* TerminalWindowController.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (10000000000000000000002B /* AttachProtocol.swift in Sources */, 100000000000000000000020 /* CommandDiagnostics.swift in Sources */, 10000000000000000000001B /* ConfigStore.swift in Sources */, 100000000000000000000011 /* ExitStatus.swift in Sources */, 10000000000000000000001A /* Job.swift in Sources */, 100000000000000000000012 /* JobRuntime.swift in Sources */, 10000000000000000000002C /* KeychainEnvironment.swift in Sources */, 10000000000000000000001D /* MetricsSampler.swift in Sources */, 10000000000000000000001C /* OutputBuffer.swift in Sources */, 100000000000000000000013 /* OutputSpool.swift in Sources */, 100000000000000000000014 /* ProcessTable.swift in Sources */, 100000000000000000000015 /* PTYSpawner.swift in Sources */, 100000000000000000000016 /* RuntimeEvent.swift in Sources */, 10000000000000000000001E /* RuntimeRegistry.swift in Sources */, 100000000000000000000017 /* ShellMode.swift in Sources */, 100000000000000000000018 /* SpawnEnvironment.swift in Sources */, 100000000000000000000019 /* SpawnSpec.swift in Sources */, 10000000000000000000001F /* Supervisor.swift in Sources */, 10000000000000000000002D /* UnixSocket.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000021 /* Check.swift in Sources */, 100000000000000000000022 /* Harness.swift in Sources */, 100000000000000000000023 /* Manual.swift in Sources */, 100000000000000000000024 /* Preconditions.swift in Sources */, 100000000000000000000025 /* Recorder.swift in Sources */, 100000000000000000000026 /* Scenarios+Basic.swift in Sources */, 100000000000000000000027 /* Scenarios+Drain.swift in Sources */, 100000000000000000000028 /* Scenarios+Process.swift in Sources */, 100000000000000000000029 /* Scenarios+Shell.swift in Sources */, 10000000000000000000002A /* main.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000004 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000031 /* main.c in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000005 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (100000000000000000000045 /* CommandDiagnosticsTests.swift in Sources */, 100000000000000000000042 /* ConfigStoreTests.swift in Sources */, 100000000000000000000043 /* OutputBufferTests.swift in Sources */, 100000000000000000000041 /* RunStuffCoreTests.swift in Sources */, 100000000000000000000044 /* SupervisorTests.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		600000000000000000000008 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (10000000000000000000000A /* main.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000001 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000002 /* RunStuffCore */; targetProxy = 400000000000000000000001 /* PBXContainerItemProxy */; };
+		A00000000000000000000002 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000004 /* runstuff-tty-helper */; targetProxy = 400000000000000000000002 /* PBXContainerItemProxy */; };
+		A00000000000000000000003 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000002 /* RunStuffCore */; targetProxy = 400000000000000000000003 /* PBXContainerItemProxy */; };
+		A00000000000000000000004 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000004 /* runstuff-tty-helper */; targetProxy = 400000000000000000000004 /* PBXContainerItemProxy */; };
+		A00000000000000000000005 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000002 /* RunStuffCore */; targetProxy = 400000000000000000000005 /* PBXContainerItemProxy */; };
+		A00000000000000000000006 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000002 /* RunStuffCore */; targetProxy = 400000000000000000000006 /* PBXContainerItemProxy */; };
+		A00000000000000000000007 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 800000000000000000000006 /* runstuff */; targetProxy = 400000000000000000000007 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B00000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		B00000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+		B00000000000000000000011 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; COPY_PHASE_STRIP = NO; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = RunStuff/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.runstuff.RunStuff; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Debug; };
+		B00000000000000000000012 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; COPY_PHASE_STRIP = NO; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = RunStuff/Info.plist; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.runstuff.RunStuff; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Release; };
+		B00000000000000000000021 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ENABLE_TESTABILITY = YES; MACH_O_TYPE = staticlib; PRODUCT_NAME = RunStuffCore; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Debug; };
+		B00000000000000000000022 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {MACH_O_TYPE = staticlib; PRODUCT_NAME = RunStuffCore; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Release; };
+		B00000000000000000000031 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = "runstuff-phase1-fixtures"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Debug; };
+		B00000000000000000000032 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = "runstuff-phase1-fixtures"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Release; };
+		B00000000000000000000041 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {GCC_TREAT_WARNINGS_AS_ERRORS = YES; GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; PRODUCT_NAME = "runstuff-tty-helper"; }; name = Debug; };
+		B00000000000000000000042 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {GCC_TREAT_WARNINGS_AS_ERRORS = YES; GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; PRODUCT_NAME = "runstuff-tty-helper"; }; name = Release; };
+		B00000000000000000000051 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = ""; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = dev.runstuff.RunStuffCoreTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; TEST_HOST = ""; }; name = Debug; };
+		B00000000000000000000052 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = ""; GENERATE_INFOPLIST_FILE = YES; PRODUCT_BUNDLE_IDENTIFIER = dev.runstuff.RunStuffCoreTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; TEST_HOST = ""; }; name = Release; };
+		B00000000000000000000061 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = "runstuff-cli"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Debug; };
+		B00000000000000000000062 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {PRODUCT_NAME = "runstuff-cli"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_TREAT_WARNINGS_AS_ERRORS = YES; SWIFT_VERSION = 6.0; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		700000000000000000000001 /* Build configuration list for PBXProject "RunStuff" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000001 /* Debug */, B00000000000000000000002 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000011 /* Build configuration list for PBXNativeTarget "RunStuff" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000011 /* Debug */, B00000000000000000000012 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000012 /* Build configuration list for PBXNativeTarget "RunStuffCore" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000021 /* Debug */, B00000000000000000000022 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffPhase1Fixtures" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000031 /* Debug */, B00000000000000000000032 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000014 /* Build configuration list for PBXNativeTarget "runstuff-tty-helper" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000041 /* Debug */, B00000000000000000000042 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000015 /* Build configuration list for PBXNativeTarget "RunStuffCoreTests" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000051 /* Debug */, B00000000000000000000052 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		700000000000000000000016 /* Build configuration list for PBXNativeTarget "runstuff" */ = {isa = XCConfigurationList; buildConfigurations = (B00000000000000000000061 /* Debug */, B00000000000000000000062 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C00000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git"; requirement = {kind = exactVersion; version = 1.19.0; }; };
+		C00000000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/sparkle-project/Sparkle"; requirement = {kind = exactVersion; version = 2.9.6; }; };
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C00000000000000000000002 /* SwiftTerm */ = {isa = XCSwiftPackageProductDependency; package = C00000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */; productName = SwiftTerm; };
+		C00000000000000000000004 /* Sparkle */ = {isa = XCSwiftPackageProductDependency; package = C00000000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */; productName = Sparkle; };
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 900000000000000000000001 /* Project object */;
+}

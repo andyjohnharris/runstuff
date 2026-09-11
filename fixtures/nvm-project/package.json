@@ -1,0 +1,8 @@
+{
+  "name": "nvm-project",
+  "private": true,
+  "description": "Fixture: which node runs `npm run dev` under each shell mode. Precondition: nvm installed with a v24 node.",
+  "scripts": {
+    "dev": "node -e \"console.log('NODE', process.version, process.execPath); console.log('PATH=' + process.env.PATH)\""
+  }
+}

@@ -1,0 +1,6 @@
+.DS_Store
+/.build/
+spike/.build/
+spike/.swiftpm/
+fixtures/ctrl-c-raw
+fixtures/winch-fg

@@ -1,0 +1,4 @@
+# Fixture: which node runs under each shell mode when mise pins the project.
+# Precondition: mise wired into the login shell with a node 24 installed.
+[tools]
+node = "24"
