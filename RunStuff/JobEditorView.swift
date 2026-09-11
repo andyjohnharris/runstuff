@@ -4,10 +4,11 @@ import SwiftUI
 
 struct JobEditorHost: View {
   @ObservedObject var model: AppModel
+  var onDismiss: () -> Void = {}
 
   var body: some View {
     if let job = model.editorJob {
-      JobEditorView(model: model, original: job)
+      JobEditorView(model: model, original: job, onDismiss: onDismiss)
         .id(job.id)
     } else {
       ContentUnavailableView("No Stuff Selected", systemImage: "terminal")
@@ -17,15 +18,16 @@ struct JobEditorHost: View {
 
 private struct JobEditorView: View {
   @ObservedObject var model: AppModel
-  @Environment(\.dismiss) private var dismiss
+  let onDismiss: () -> Void
   @State private var job: Job
   @State private var errorMessage: String?
   @State private var newEnvironmentKey = ""
   @State private var newEnvironmentValue = ""
   @State private var commandSuggestions: [String] = []
 
-  init(model: AppModel, original: Job) {
+  init(model: AppModel, original: Job, onDismiss: @escaping () -> Void) {
     self.model = model
+    self.onDismiss = onDismiss
     _job = State(initialValue: original)
   }
 
@@ -193,7 +195,7 @@ private struct JobEditorView: View {
 
       Divider()
       HStack {
-        Button("Cancel") { dismiss() }
+        Button("Cancel") { onDismiss() }
         Button("Test Run", systemImage: "play.fill") { model.testRun(job) }
           .disabled(!canTest)
         Spacer()
@@ -310,11 +312,52 @@ private struct JobEditorView: View {
     Task {
       do {
         try await model.saveEditorJob(job)
-        dismiss()
+        onDismiss()
       } catch {
         errorMessage = String(describing: error)
       }
     }
+  }
+}
+
+@MainActor
+final class JobEditorWindowController: NSWindowController, NSWindowDelegate {
+  private unowned let model: AppModel
+
+  init(model: AppModel) {
+    self.model = model
+    let window = NSWindow(
+      contentRect: NSRect(x: 0, y: 0, width: 560, height: 820),
+      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+      backing: .buffered,
+      defer: false)
+    super.init(window: window)
+
+    window.delegate = self
+    window.isReleasedWhenClosed = false
+    window.contentMinSize = NSSize(width: 560, height: 620)
+    window.setFrameAutosaveName("RunStuff.JobEditor")
+    window.contentView = NSHostingView(
+      rootView: JobEditorHost(model: model) { [weak self] in self?.close() })
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) is unavailable")
+  }
+
+  func show() {
+    window?.title =
+      model.editorJob.map { job in
+        model.jobs.contains { $0.job.id == job.id } ? "Edit Stuff" : "Add Stuff"
+      } ?? "Stuff"
+    showWindow(nil)
+    window?.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  func windowWillClose(_ notification: Notification) {
+    model.editorJob = nil
   }
 }
 

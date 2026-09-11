@@ -6,7 +6,6 @@ import SwiftUI
 
 struct RootView: View {
   @ObservedObject var model: AppModel
-  @Environment(\.openWindow) private var openWindow
   @Environment(\.openSettings) private var openSettings
   @State private var navigationPath: [UUID] = []
 
@@ -36,17 +35,6 @@ struct RootView: View {
       }
     }
     .frame(width: 380, height: 500)
-    .onChange(of: model.jobs) { _, jobs in
-      guard let requested = ProcessInfo.processInfo.environment["RUNSTUFF_SCREENSHOT_DETAIL"],
-        navigationPath.isEmpty
-      else { return }
-      let jobID =
-        UUID(uuidString: requested).flatMap { requestedID in
-          jobs.first(where: { $0.job.id == requestedID })?.job.id
-        } ?? jobs.first?.job.id
-      guard let jobID else { return }
-      navigationPath = [jobID]
-    }
     .sheet(
       isPresented: Binding(
         get: { !model.orphans.isEmpty },
@@ -195,8 +183,7 @@ struct RootView: View {
   }
 
   private func openEditor() {
-    model.prepareNewJob()
-    openWindow(id: "editor")
+    model.showNewJobEditor()
   }
 }
 
@@ -308,7 +295,6 @@ private struct HealthMark: View {
 private struct JobDetailView: View {
   @ObservedObject var model: AppModel
   let snapshot: JobSnapshot
-  @Environment(\.openWindow) private var openWindow
   @State private var confirmsDelete = false
 
   var body: some View {
@@ -377,8 +363,7 @@ private struct JobDetailView: View {
         }
         HStack {
           Button("Edit") {
-            model.prepareToEdit(snapshot.job)
-            openWindow(id: "editor")
+            model.showEditor(for: snapshot.job)
           }
           Button("Reveal in Finder") {
             NSWorkspace.shared.activateFileViewerSelecting([snapshot.job.workingDirectory])

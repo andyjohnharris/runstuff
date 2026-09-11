@@ -1,4 +1,6 @@
 .DS_Store
+xcuserdata/
+*.xcuserstate
 /.build/
 spike/.build/
 spike/.swiftpm/

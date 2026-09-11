@@ -81,52 +81,6 @@ final class StatusItemController: NSObject {
     model.panelVisibilityChanged(true)
   }
 
-  func showPanel() {
-    guard !panel.isVisible else { return }
-    togglePanel()
-  }
-
-  func capturePanel(to path: String) {
-    guard let view = panel.contentView,
-      let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
-    else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
-  }
-
-  func captureEditor(to path: String) {
-    model.prepareNewJob()
-    let view = NSHostingView(rootView: JobEditorHost(model: model))
-    view.frame = NSRect(x: 0, y: 0, width: 560, height: 820)
-    view.layoutSubtreeIfNeeded()
-    guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
-  }
-
-  func captureSettings(to path: String) {
-    let view = NSHostingView(
-      rootView: SettingsView(settings: model.settings, updates: model.updates))
-    view.frame = NSRect(x: 0, y: 0, width: 540, height: 520)
-    view.layoutSubtreeIfNeeded()
-    guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
-  }
-
-  func captureRecovery(to path: String) {
-    let view = NSHostingView(rootView: OrphanRecoveryView(model: model))
-    view.frame = NSRect(x: 0, y: 0, width: 560, height: max(180, 110 + model.orphans.count * 60))
-    view.layoutSubtreeIfNeeded()
-    guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
-  }
-
   private func updateIcon(_ jobs: [JobSnapshot], hasOrphans: Bool) {
     let running = jobs.filter { $0.pid != nil }
     let health: StatusHealth
@@ -168,8 +122,10 @@ private struct StatusIconView: View {
 
   var body: some View {
     HStack(spacing: 2) {
-      Image(systemName: count == 0 ? "terminal" : "terminal.fill")
-        .font(.system(size: 14, weight: .semibold))
+      Image("MenuBarIcon")
+        .resizable()
+        .scaledToFit()
+        .frame(width: 18, height: 18)
       if count > 0 {
         Text("\(count)")
           .font(.system(size: 9, weight: .bold, design: .rounded))

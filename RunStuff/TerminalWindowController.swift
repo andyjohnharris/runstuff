@@ -19,10 +19,6 @@ final class TerminalWindowRegistry {
     controller.show()
   }
 
-  func capture(jobID: UUID, to path: String) {
-    show(jobID: jobID)
-    controllers[jobID]?.capture(to: path)
-  }
 }
 
 @MainActor
@@ -134,15 +130,6 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
     window.makeFirstResponder(terminalView)
     model.terminalVisibilityChanged(jobID: jobID, visible: true)
     resizeToTerminal()
-  }
-
-  func capture(to path: String) {
-    guard let view = window?.contentView,
-      let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
-    else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
   }
 
   func windowWillClose(_ notification: Notification) {
@@ -343,15 +330,6 @@ final class PreviewTerminalWindowController: NSWindowController, NSWindowDelegat
   func windowWillClose(_ notification: Notification) {
     closeRuntime()
     onClose()
-  }
-
-  func capture(to path: String) {
-    guard let view = window?.contentView,
-      let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
-    else { return }
-    view.cacheDisplay(in: view.bounds, to: bitmap)
-    guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-    try? data.write(to: URL(fileURLWithPath: path))
   }
 
   func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {

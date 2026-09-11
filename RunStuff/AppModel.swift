@@ -18,6 +18,7 @@ final class AppModel: ObservableObject {
   lazy var updates = UpdateController(settings: settings)
   private let attachServer: AttachServer
   var closePanel: (() -> Void)?
+  private lazy var editorWindow = JobEditorWindowController(model: self)
   private lazy var terminalWindows = TerminalWindowRegistry(model: self)
   private var previewWindows: [UUID: PreviewTerminalWindowController] = [:]
   private var visibleTerminals: Set<UUID> = []
@@ -148,10 +149,6 @@ final class AppModel: ObservableObject {
     }
   }
 
-  func captureTerminal(_ jobID: UUID, to path: String) {
-    terminalWindows.capture(jobID: jobID, to: path)
-  }
-
   @discardableResult
   func testRun(_ job: Job) -> PreviewTerminalWindowController {
     var previewJob = job
@@ -222,6 +219,16 @@ final class AppModel: ObservableObject {
     editorJob = job
     closePanel?()
     NSApp.activate(ignoringOtherApps: true)
+  }
+
+  func showNewJobEditor() {
+    prepareNewJob()
+    editorWindow.show()
+  }
+
+  func showEditor(for job: Job) {
+    prepareToEdit(job)
+    editorWindow.show()
   }
 
   func saveEditorJob(_ job: Job) async throws {
