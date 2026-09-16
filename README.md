@@ -2,6 +2,8 @@
 
 RunStuff is a macOS menu bar app for starting, supervising, and attaching to local development processes.
 
+The [design system](DESIGN.md) defines the app's colours, typography, reusable components and motion rules.
+
 ## Run a development build
 
 1. Open `RunStuff.xcodeproj` and run the `RunStuff` scheme.
@@ -42,3 +44,19 @@ RunStuff uses Sparkle 2.9.6 and embeds its EdDSA public key. Enter the HTTPS app
 Open its detail view and check **Executable** and **PATH**. An exit code of 127 usually means the selected shell mode did not load the tool. Try **Interactive login** for nvm or other setup from `.zshrc`. Try **Login** for mise, asdf, and Homebrew. Use **Direct** only with an executable available in the configured `PATH`.
 
 If a `${keychain:name}` value fails, confirm that the generic-password item's service is `dev.runstuff.environment` and its account is `name`.
+
+## Failure notifications and port conflicts
+
+Settings shows notification permission and links to macOS notification settings. RunStuff presents alerts while active and shows permission or delivery errors in its banner. Focus and macOS settings can still silence alerts. User-requested stops do not send exit alerts.
+
+Unexpected failures retain a reason on the Stuff card and in its details until the next start. For recognised TCP bind conflicts, **Check Port Owner** runs a read-only `lsof` lookup. It shows current listeners, which may differ from the owner at failure time. Stop the conflicting service from its app or terminal, then use **Restart**. RunStuff does not kill other services automatically.
+
+The owner-check terminal also shows **Copy Stop Command**. Enter a listed PID to copy `kill -TERM <PID>`, or press Return to finish without copying. RunStuff never executes that command. Check the owner again if you run it later: PIDs can be reused.
+
+Some wrapper scripts return exit code 0 even when a child fails. When the output contains a recognised TCP bind conflict, the completion notification reports the port conflict alongside the command's exit code and offers **Check Port Owner** and **View Output**. This is evidence from the output, not proof that the port is still occupied; it does not change health or trigger automatic restarts.
+
+The popover retains a **Check output** indicator and the reported conflict until the next start. Details retain the matching output, actual exit status and remediation actions too. User-requested stops do not create this reported-conflict state.
+
+To also mark these runs as failures, open **Edit → Signal Rules → Suggested Rules** and add **bind: address already in use** (Go/Smokescreen) or **EADDRINUSE** (Node or Ruby/Puma). Keep **Notify** enabled. These explicit rules detect the failure even if the wrapper exits with code 0.
+
+Failure evidence is retained for the current app session, not persisted across app launches. See [the notification plan](NOTIFICATIONS-PLAN.md) for scope and verification.

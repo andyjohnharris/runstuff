@@ -27,7 +27,8 @@ struct RunStuffApp: App {
 
   var body: some Scene {
     Settings {
-      SettingsView(settings: model.settings, updates: model.updates)
+      SettingsView(
+        settings: model.settings, updates: model.updates, notifications: model.notifications)
     }
   }
 }

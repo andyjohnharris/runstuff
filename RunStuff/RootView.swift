@@ -7,6 +7,7 @@ import SwiftUI
 struct RootView: View {
   @ObservedObject var model: AppModel
   @Environment(\.openSettings) private var openSettings
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var navigationPath: [UUID] = []
 
   var body: some View {
@@ -14,7 +15,7 @@ struct RootView: View {
       VStack(spacing: 0) {
         if !model.runningJobs.isEmpty {
           runningHeader
-          Divider()
+            .transition(reduceMotion ? .identity : .move(edge: .top).combined(with: .opacity))
         }
         if let banner = model.banner {
           bannerView(banner)
@@ -28,13 +29,18 @@ struct RootView: View {
         Divider()
         actionBar
       }
+      .animation(reduceMotion ? nil : RunStuffStyle.transition, value: model.runningJobs.isEmpty)
+      .clipped()
+      .background(RunStuffStyle.canvas)
       .navigationDestination(for: UUID.self) { id in
         if let snapshot = model.jobs.first(where: { $0.job.id == id }) {
           JobDetailView(model: model, snapshot: snapshot)
         }
       }
     }
-    .frame(width: 380, height: 500)
+    .toolbar(.hidden, for: .windowToolbar)
+    .stuffTheme()
+    .frame(width: RunStuffStyle.panelWidth, height: RunStuffStyle.panelHeight)
     .sheet(
       isPresented: Binding(
         get: { !model.orphans.isEmpty },
@@ -49,21 +55,26 @@ struct RootView: View {
     return VStack(alignment: .leading, spacing: 8) {
       HStack {
         VStack(alignment: .leading, spacing: 2) {
-          Text("\(model.runningJobs.count) running")
-            .font(.system(size: 22, weight: .semibold))
+          Label("\(model.runningJobs.count) running", systemImage: "circle.fill")
+            .font(RunStuffStyle.title)
+            .labelStyle(RunningCountLabelStyle())
           let cpu = model.runningJobs.compactMap(\.metric?.cpuPercent).reduce(0, +)
           let memory = model.runningJobs.compactMap(\.metric?.residentBytes).reduce(0, +)
           Text(
             "CPU \(cpu, format: .number.precision(.fractionLength(0)))%  ·  \(memory.formatted(.byteCount(style: .memory)))"
           )
           .font(.caption)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(RunStuffStyle.secondary)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 5)
+          .background(RunStuffStyle.raised, in: RoundedRectangle(cornerRadius: 7))
         }
         Spacer()
         Button("Stop All", systemImage: "stop.fill") {
           Task { await model.stopAll() }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.coral))
+        .disabled(model.runningJobs.isEmpty)
       }
       Chart {
         ForEach(model.runningJobs, id: \.job.id) { snapshot in
@@ -73,20 +84,17 @@ struct RootView: View {
                 .foregroundStyle(.secondary.opacity(0.5))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
             } else {
-              AreaMark(
+              BarMark(
                 x: .value("Time", metric.timestamp),
                 y: .value("CPU", metric.cpuPercent),
+                width: .fixed(3),
                 stacking: .standard
               )
-              .foregroundStyle(by: .value("Stuff", snapshot.job.name))
+              .foregroundStyle(RunStuffStyle.mint.gradient)
             }
           }
         }
       }
-      .chartForegroundStyleScale(
-        domain: model.runningJobs.map(\.job.name),
-        range: model.runningJobs.map { jobColor($0.job.colorSeed) }
-      )
       .chartLegend(.hidden)
       .chartXScale(domain: windowEnd.addingTimeInterval(-60)...windowEnd)
       .chartXAxis(.hidden)
@@ -94,7 +102,10 @@ struct RootView: View {
       .frame(height: 64)
       .accessibilityLabel("CPU use over the last minute")
     }
-    .padding(16)
+    .padding(RunStuffStyle.inset)
+    .background(
+      LinearGradient(
+        colors: [RunStuffStyle.raised, RunStuffStyle.surface], startPoint: .top, endPoint: .bottom))
   }
 
   private func recentMetrics(_ snapshot: JobSnapshot) -> [JobMetric] {
@@ -121,12 +132,28 @@ struct RootView: View {
   }
 
   private var jobList: some View {
-    List(model.jobs, id: \.job.id) { snapshot in
-      NavigationLink(value: snapshot.job.id) {
-        JobRow(model: model, snapshot: snapshot)
+    ScrollView {
+      VStack(alignment: .leading, spacing: 10) {
+        Text("STUFF")
+          .font(RunStuffStyle.caption)
+          .tracking(1.5)
+          .foregroundStyle(RunStuffStyle.secondary)
+        ForEach(model.jobs, id: \.job.id) { snapshot in
+          JobRow(model: model, snapshot: snapshot) {
+            withAnimation(reduceMotion ? nil : RunStuffStyle.transition) {
+              navigationPath.append(snapshot.job.id)
+            }
+          }
+        }
+        Button("Add Stuff", systemImage: "plus") { openEditor() }
+          .frame(maxWidth: .infinity, minHeight: 40)
+          .buttonStyle(.plain)
+          .foregroundStyle(RunStuffStyle.secondary)
+          .background(
+            RoundedRectangle(cornerRadius: RunStuffStyle.radius).stroke(RunStuffStyle.border))
       }
+      .padding(RunStuffStyle.inset)
     }
-    .listStyle(.plain)
     .accessibilityLabel("Stuff")
   }
 
@@ -156,8 +183,9 @@ struct RootView: View {
       Button {
         openEditor()
       } label: {
-        Image(systemName: "plus")
+        Label("New", systemImage: "plus")
       }
+      .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
       .help("Add stuff")
       .keyboardShortcut("n", modifiers: .command)
       Spacer()
@@ -167,7 +195,6 @@ struct RootView: View {
         Image(systemName: "gearshape")
       }
       .help("RunStuff settings")
-      Spacer()
       Button {
         model.quit()
       } label: {
@@ -176,10 +203,11 @@ struct RootView: View {
       .help("Quit RunStuff")
       .keyboardShortcut("q", modifiers: .command)
     }
-    .buttonStyle(.plain)
+    .buttonStyle(StuffButtonStyle())
     .font(.system(size: 16))
     .padding(.horizontal, 16)
-    .frame(height: 42)
+    .frame(height: 58)
+    .background(RunStuffStyle.surface)
   }
 
   private func openEditor() {
@@ -190,79 +218,115 @@ struct RootView: View {
 private struct JobRow: View {
   @ObservedObject var model: AppModel
   let snapshot: JobSnapshot
+  var showDetail: () -> Void
   @State private var isHovered = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     HStack(spacing: 10) {
-      HealthMark(
-        health: snapshot.health,
-        running: snapshot.pid != nil,
-        runningColor: jobColor(snapshot.job.colorSeed))
-      VStack(alignment: .leading, spacing: 3) {
-        Text(snapshot.job.name)
-          .font(.system(size: 13, weight: .medium))
-        Text(snapshot.job.command)
-          .font(.system(size: 11, design: .monospaced))
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-      }
-      if let port = snapshot.listeningPorts.first {
-        Text(verbatim: ":\(port)")
-          .font(.caption.monospacedDigit())
-          .padding(.horizontal, 5)
-          .padding(.vertical, 2)
-          .background(.secondary.opacity(0.12), in: Capsule())
-      }
-      Spacer()
-      Text(snapshot.isReady ? "Ready" : snapshot.state.label)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      if let startedInstant = snapshot.startedInstant, snapshot.pid != nil {
-        TimelineView(.periodic(from: .now, by: 1)) { _ in
-          Text(elapsed(since: startedInstant))
-            .font(.caption.monospacedDigit())
+      Button(action: showDetail) {
+        HStack(spacing: 12) {
+          Image(systemName: snapshot.pid != nil ? "waveform.path" : "moon")
+            .font(.system(size: 20))
+            .foregroundStyle(snapshot.pid != nil ? RunStuffStyle.mint : RunStuffStyle.secondary)
+            .frame(width: 38, height: 38)
+            .background(
+              (snapshot.pid != nil ? RunStuffStyle.mint : RunStuffStyle.secondary).opacity(0.10),
+              in: RoundedRectangle(cornerRadius: 11)
+            )
+            .overlay(alignment: .bottomTrailing) {
+              if snapshot.reportedPortConflict != nil {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundStyle(RunStuffStyle.coral)
+              } else {
+                HealthMark(
+                  health: snapshot.health, running: snapshot.pid != nil,
+                  runningColor: RunStuffStyle.mint)
+              }
+            }
+          VStack(alignment: .leading, spacing: 3) {
+            Text(snapshot.job.name)
+              .font(RunStuffStyle.heading)
+              .lineLimit(1)
+            if let diagnostic = snapshot.failure ?? snapshot.reportedPortConflict {
+              Text(diagnostic.summary)
+                .font(RunStuffStyle.caption)
+                .foregroundStyle(RunStuffStyle.coral)
+                .lineLimit(3)
+                .help(diagnostic.summary)
+            } else if case .error(let reason, _) = snapshot.health {
+              Text(reason)
+                .font(RunStuffStyle.caption)
+                .foregroundStyle(RunStuffStyle.coral)
+                .lineLimit(2)
+                .help(reason)
+            } else {
+              Text(snapshot.job.command)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+          }
+          if let port = snapshot.listeningPorts.first {
+            Text(verbatim: ":\(port)")
+              .font(.caption.monospacedDigit())
+              .padding(.horizontal, 5)
+              .padding(.vertical, 2)
+              .background(.secondary.opacity(0.12), in: Capsule())
+          }
+          Spacer()
+          VStack(alignment: .trailing, spacing: 4) {
+            Text(
+              snapshot.reportedPortConflict != nil
+                ? "Check output" : snapshot.isReady ? "Ready" : snapshot.state.label
+            )
+            .font(.caption)
             .foregroundStyle(.secondary)
+            if let startedInstant = snapshot.startedInstant, snapshot.pid != nil {
+              TimelineView(.periodic(from: .now, by: 1)) { _ in
+                Text(elapsed(since: startedInstant))
+                  .font(.caption.monospacedDigit())
+                  .foregroundStyle(.secondary)
+              }
+            }
+          }
+          .fixedSize()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
       }
+      .buttonStyle(.plain)
       if snapshot.pid == nil {
         Button("Start", systemImage: "play.fill") { model.start(snapshot.job.id) }
           .labelStyle(.iconOnly)
           .help("Start \(snapshot.job.name)")
-      } else if isHovered {
+      } else {
         Button("Stop", systemImage: "stop.fill") { model.stop(snapshot.job.id) }
           .labelStyle(.iconOnly)
           .help("Stop \(snapshot.job.name)")
-        if !snapshot.isAdopted {
-          Button("Restart", systemImage: "arrow.clockwise") { model.restart(snapshot.job.id) }
-            .labelStyle(.iconOnly)
-            .help("Restart \(snapshot.job.name)")
-        }
       }
-      Image(systemName: "chevron.right")
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(.tertiary)
-    }
-    .padding(.vertical, 5)
-    .overlay(alignment: .bottomLeading) {
-      if isHovered, snapshot.metricHistory.count > 1 {
-        Chart(snapshot.metricHistory.suffix(30), id: \.timestamp) { metric in
-          if !metric.isGap {
-            LineMark(
-              x: .value("Time", metric.timestamp),
-              y: .value("CPU", metric.cpuPercent)
-            )
-            .foregroundStyle(jobColor(snapshot.job.colorSeed))
-          }
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .frame(width: 72, height: 16)
-        .offset(x: 19, y: 5)
-        .accessibilityHidden(true)
+      Button(action: showDetail) {
+        Image(systemName: "chevron.right")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.tertiary)
       }
+      .buttonStyle(.plain)
+      .accessibilityLabel("Details for \(snapshot.job.name)")
     }
+    .padding(12)
+    .background(
+      isHovered ? RunStuffStyle.raised : RunStuffStyle.surface,
+      in: RoundedRectangle(cornerRadius: RunStuffStyle.radius)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: RunStuffStyle.radius).stroke(
+        snapshot.pid != nil ? RunStuffStyle.mint.opacity(0.25) : RunStuffStyle.border)
+    )
+    .animation(reduceMotion ? nil : RunStuffStyle.feedback, value: isHovered)
     .onHover { isHovered = $0 }
-    .buttonStyle(.plain)
+    .buttonStyle(
+      StuffButtonStyle(tint: snapshot.pid != nil ? RunStuffStyle.coral : RunStuffStyle.secondary)
+    )
     .accessibilityElement(children: .contain)
   }
 }
@@ -296,82 +360,102 @@ private struct JobDetailView: View {
   @ObservedObject var model: AppModel
   let snapshot: JobSnapshot
   @State private var confirmsDelete = false
+  @State private var showsPATH = false
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 10) {
-        HStack {
-          HealthMark(
-            health: snapshot.health,
-            running: snapshot.pid != nil,
-            runningColor: jobColor(snapshot.job.colorSeed))
-          Text(snapshot.state.label)
-            .foregroundStyle(.secondary)
-          Spacer()
-          if let pid = snapshot.pid {
-            Text(verbatim: "PID \(pid)").monospacedDigit().foregroundStyle(.secondary)
+    VStack(spacing: 0) {
+      header
+      Divider()
+      ScrollView {
+        VStack(alignment: .leading, spacing: 10) {
+          if let failure = snapshot.failure ?? snapshot.reportedPortConflict {
+            StuffCard {
+              VStack(alignment: .leading, spacing: 10) {
+                Label(failure.summary, systemImage: "exclamationmark.triangle.fill")
+                  .foregroundStyle(RunStuffStyle.coral)
+                  .fixedSize(horizontal: false, vertical: true)
+                if snapshot.failure == nil {
+                  Text("Reported in output. The command exited with code 0.")
+                    .font(RunStuffStyle.caption)
+                    .foregroundStyle(RunStuffStyle.secondary)
+                }
+                Text(failure.evidence)
+                  .font(RunStuffStyle.code)
+                  .foregroundStyle(RunStuffStyle.secondary)
+                  .textSelection(.enabled)
+                  .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                  if let port = failure.conflictingPort {
+                    Button("Check Port Owner") { model.checkPortOwner(port) }
+                  }
+                  Button("View Output") { model.openTerminal(snapshot.job.id) }
+                }
+                .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
+              }
+              .padding(12)
+            }
+          } else if case .warning(let reason, _) = snapshot.health {
+            healthReason(reason, color: .orange)
+          } else if case .error(let reason, _) = snapshot.health {
+            healthReason(reason, color: .red)
           }
-        }
-        if case .warning(let reason, _) = snapshot.health {
-          healthReason(reason, color: .orange)
-        } else if case .error(let reason, _) = snapshot.health {
-          healthReason(reason, color: .red)
-        }
-        detail("Command", snapshot.job.command)
-        detail("Folder", snapshot.job.workingDirectory.path)
-        detail("Shell", snapshot.job.shellMode.flagDescription)
-        if !snapshot.listeningPorts.isEmpty {
-          detail("Ports", snapshot.listeningPorts.map { ":\($0)" }.joined(separator: ", "))
-        }
+          StuffCard {
+            detail("Command", snapshot.job.command)
+            Divider()
+            detail("Folder", snapshot.job.workingDirectory.path)
+            Divider()
+            detail("Shell", snapshot.job.shellMode.flagDescription)
+            if !snapshot.listeningPorts.isEmpty {
+              Divider()
+              detail("Ports", snapshot.listeningPorts.map { ":\($0)" }.joined(separator: ", "))
+            }
+          }
 
-        if let metric = snapshot.metric {
+          metricCharts
+
+          StuffCard {
+            detail("Executable", snapshot.diagnostics?.resolvedExecutable ?? "Unavailable")
+            Divider()
+            detail(
+              "Version",
+              snapshot.diagnostics?.versionTimedOut == true
+                ? "Probe timed out" : snapshot.diagnostics?.executableVersion ?? "Unavailable")
+            Divider()
+            DisclosureGroup("PATH", isExpanded: $showsPATH) {
+              Text(snapshot.diagnostics?.effectivePATH ?? "Resolving…")
+                .font(RunStuffStyle.code)
+                .foregroundStyle(RunStuffStyle.secondary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
+            }
+            .padding(12)
+            .animation(reduceMotion ? nil : RunStuffStyle.transition, value: showsPATH)
+          }
+
+          outputTail
+
           HStack {
-            Label(
-              "\(metric.cpuPercent, format: .number.precision(.fractionLength(1)))%",
-              systemImage: "cpu")
-            Label(
-              metric.residentBytes.formatted(.byteCount(style: .memory)), systemImage: "memorychip")
-          }
-          .font(.caption)
-        }
-
-        metricCharts
-
-        detail("Executable", snapshot.diagnostics?.resolvedExecutable ?? "Unavailable")
-        detail(
-          "Version",
-          snapshot.diagnostics?.versionTimedOut == true
-            ? "Probe timed out" : snapshot.diagnostics?.executableVersion ?? "Unavailable")
-        detail("PATH", snapshot.diagnostics?.effectivePATH ?? "Resolving…")
-
-        outputTail
-
-        HStack {
-          Button("View Output") { model.openTerminal(snapshot.job.id) }
-            .disabled(snapshot.isAdopted)
-            .help(
-              snapshot.isAdopted
-                ? "Output is unavailable for a process adopted after RunStuff quit" : "")
-          Button("External Terminal") { model.openExternalTerminal(snapshot.job.id) }
+            Button("Edit", systemImage: "pencil") {
+              model.showEditor(for: snapshot.job)
+            }
+            Button("Reveal", systemImage: "folder") {
+              NSWorkspace.shared.activateFileViewerSelecting([snapshot.job.workingDirectory])
+            }
+            Button("Copy", systemImage: "square.on.square") {
+              NSPasteboard.general.clearContents()
+              NSPasteboard.general.setString(snapshot.job.command, forType: .string)
+            }
+            Button("Terminal", systemImage: "arrow.up.forward.square") {
+              model.openExternalTerminal(snapshot.job.id)
+            }
             .disabled(snapshot.pid == nil || snapshot.isAdopted)
-          Button(snapshot.pid == nil ? "Start" : "Stop") {
-            snapshot.pid == nil ? model.start(snapshot.job.id) : model.stop(snapshot.job.id)
+            .help("Open in external terminal")
           }
-          .buttonStyle(.borderedProminent)
-          Button("Restart") { model.restart(snapshot.job.id) }
-            .disabled(snapshot.pid == nil || snapshot.isAdopted)
-        }
-        HStack {
-          Button("Edit") {
-            model.showEditor(for: snapshot.job)
-          }
-          Button("Reveal in Finder") {
-            NSWorkspace.shared.activateFileViewerSelecting([snapshot.job.workingDirectory])
-          }
-          Button("Copy Command") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(snapshot.job.command, forType: .string)
-          }
+          .labelStyle(StuffActionLabelStyle())
+          .buttonStyle(StuffButtonStyle())
           if let port = snapshot.listeningPorts.first {
             Button {
               if let url = URL(string: "http://localhost:\(port)") {
@@ -381,26 +465,116 @@ private struct JobDetailView: View {
               Text(verbatim: "Open localhost:\(port)")
             }
           }
+
+          toggles
         }
-        .buttonStyle(.link)
-
-        toggles
-
-        Button("Delete", role: .destructive) { confirmsDelete = true }
-          .disabled(snapshot.pid != nil)
-          .confirmationDialog("Delete \(snapshot.job.name)?", isPresented: $confirmsDelete) {
-            Button("Delete", role: .destructive) {
-              Task { await model.delete(snapshot.job.id) }
-            }
-          }
+        .padding(16)
       }
-      .padding(16)
+      Divider()
+      footer
     }
-    .navigationTitle(snapshot.job.name)
+    .background(RunStuffStyle.canvas)
+    .navigationBarBackButtonHidden()
     .task {
       await model.supervisor.acknowledgeWarning(jobID: snapshot.job.id)
       await model.supervisor.resolveDiagnostics(jobID: snapshot.job.id)
     }
+  }
+
+  private var header: some View {
+    HStack(spacing: 8) {
+      Button {
+        withAnimation(reduceMotion ? nil : RunStuffStyle.transition) { dismiss() }
+      } label: {
+        Image(systemName: "chevron.left")
+          .font(.system(size: 13, weight: .semibold))
+      }
+      .buttonStyle(StuffButtonStyle())
+      .help("Back to all Stuff")
+      .keyboardShortcut("[", modifiers: .command)
+      .accessibilityLabel("Back")
+      VStack(alignment: .leading, spacing: 5) {
+        Text(snapshot.job.name)
+          .font(RunStuffStyle.heading)
+          .lineLimit(1)
+        HStack(spacing: 6) {
+          if snapshot.reportedPortConflict != nil {
+            Image(systemName: "exclamationmark.triangle.fill")
+              .foregroundStyle(RunStuffStyle.coral)
+          } else {
+            HealthMark(
+              health: snapshot.health,
+              running: snapshot.pid != nil,
+              runningColor: RunStuffStyle.mint)
+          }
+          Text(
+            snapshot.reportedPortConflict != nil
+              ? "Check output · \(snapshot.state.label)" : snapshot.state.label
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          if let pid = snapshot.pid {
+            Text(verbatim: "PID \(pid)")
+              .font(.caption.monospacedDigit())
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+      Spacer()
+      Button {
+        snapshot.pid == nil ? model.start(snapshot.job.id) : model.stop(snapshot.job.id)
+      } label: {
+        Image(systemName: snapshot.pid == nil ? "play.fill" : "stop.fill")
+      }
+      .buttonStyle(
+        StuffButtonStyle(tint: snapshot.pid == nil ? RunStuffStyle.mint : RunStuffStyle.coral)
+      )
+      .help(snapshot.pid == nil ? "Start \(snapshot.job.name)" : "Stop \(snapshot.job.name)")
+    }
+    .padding(.horizontal, 16)
+    .frame(height: 74)
+    .background(RunStuffStyle.surface)
+  }
+
+  private var footer: some View {
+    HStack {
+      Button {
+        model.restart(snapshot.job.id)
+      } label: {
+        Label("Restart", systemImage: "arrow.clockwise")
+      }
+      .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
+      .disabled(snapshot.isAdopted)
+      .help("Restart \(snapshot.job.name)")
+      Spacer()
+      Button {
+        model.openTerminal(snapshot.job.id)
+      } label: {
+        Image(systemName: "terminal")
+      }
+      .disabled(snapshot.isAdopted)
+      .help(
+        snapshot.isAdopted
+          ? "Output is unavailable for a process adopted after RunStuff quit" : "View output")
+      Button(role: .destructive) {
+        confirmsDelete = true
+      } label: {
+        Image(systemName: "trash")
+      }
+      .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.coral))
+      .disabled(snapshot.pid != nil)
+      .help("Delete \(snapshot.job.name)")
+      .confirmationDialog("Delete \(snapshot.job.name)?", isPresented: $confirmsDelete) {
+        Button("Delete", role: .destructive) {
+          Task { await model.delete(snapshot.job.id) }
+        }
+      }
+    }
+    .buttonStyle(StuffButtonStyle())
+    .font(.system(size: 16))
+    .padding(.horizontal, 16)
+    .frame(height: 58)
+    .background(RunStuffStyle.surface)
   }
 
   private var outputTail: some View {
@@ -408,7 +582,20 @@ private struct JobDetailView: View {
     let placeholder =
       snapshot.isAdopted
       ? "Output is unavailable for an adopted process." : "No output yet"
-    return Group {
+    return StuffCard {
+      HStack {
+        Label("OUTPUT", systemImage: "terminal")
+          .font(RunStuffStyle.caption)
+          .foregroundStyle(RunStuffStyle.secondary)
+        Spacer()
+        Button("Expand output", systemImage: "arrow.up.left.and.arrow.down.right") {
+          model.openTerminal(snapshot.job.id)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.plain)
+        .disabled(snapshot.isAdopted)
+      }
+      .padding(12)
       if lines.isEmpty {
         Text(placeholder)
           .font(.system(size: 11, design: .monospaced))
@@ -420,54 +607,72 @@ private struct JobDetailView: View {
           .frame(height: 86)
       }
     }
-    .background(.black.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+    .clipShape(RoundedRectangle(cornerRadius: RunStuffStyle.radius))
   }
 
   private var metricCharts: some View {
-    let metrics = downsample(snapshot.metricHistory, maximumCount: 300)
-    return VStack(alignment: .leading, spacing: 6) {
-      if metrics.count > 1 {
-        Text("CPU").font(.caption).foregroundStyle(.secondary)
-        Chart(metrics, id: \.timestamp) { metric in
-          if metric.isGap {
-            RuleMark(x: .value("Sleep", metric.timestamp))
-              .foregroundStyle(.secondary.opacity(0.5))
-              .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
-          } else {
-            LineMark(
-              x: .value("Time", metric.timestamp),
-              y: .value("CPU", metric.cpuPercent)
-            )
-            .foregroundStyle(jobColor(snapshot.job.colorSeed))
-          }
+    let metrics = downsample(snapshot.metricHistory, maximumCount: 30)
+    return HStack(spacing: 10) {
+      StuffCard {
+        HStack {
+          Text("CPU").font(RunStuffStyle.caption).foregroundStyle(RunStuffStyle.secondary)
+          Spacer()
+          Text(snapshot.metric.map { String(format: "%.1f%%", $0.cpuPercent) } ?? "—")
+            .font(RunStuffStyle.code).foregroundStyle(RunStuffStyle.mint)
         }
-        .chartXAxis(.hidden)
-        .frame(height: 40)
-
-        Text("Memory").font(.caption).foregroundStyle(.secondary)
+        .padding(12)
         Chart(metrics, id: \.timestamp) { metric in
           if metric.isGap {
             RuleMark(x: .value("Sleep", metric.timestamp))
               .foregroundStyle(.secondary.opacity(0.5))
               .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
           } else {
-            LineMark(
+            BarMark(
               x: .value("Time", metric.timestamp),
-              y: .value("Bytes", metric.residentBytes)
+              y: .value("CPU", metric.cpuPercent),
+              width: .fixed(3)
             )
-            .foregroundStyle(jobColor(snapshot.job.colorSeed))
+            .foregroundStyle(RunStuffStyle.mint.gradient)
           }
         }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .frame(height: 34)
+        .frame(height: 40)
+        .padding(12)
+      }
+
+      StuffCard {
+        HStack {
+          Text("MEMORY").font(RunStuffStyle.caption).foregroundStyle(RunStuffStyle.secondary)
+          Spacer()
+          Text(snapshot.metric?.residentBytes.formatted(.byteCount(style: .memory)) ?? "—")
+            .font(RunStuffStyle.code).foregroundStyle(RunStuffStyle.blue)
+        }
+        .padding(12)
+        Chart(metrics, id: \.timestamp) { metric in
+          if metric.isGap {
+            RuleMark(x: .value("Sleep", metric.timestamp))
+              .foregroundStyle(.secondary.opacity(0.5))
+              .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
+          } else {
+            BarMark(
+              x: .value("Time", metric.timestamp),
+              y: .value("Bytes", metric.residentBytes),
+              width: .fixed(3)
+            )
+            .foregroundStyle(RunStuffStyle.blue.gradient)
+          }
+        }
+        .chartXAxis(.hidden)
+        .chartYAxis(.hidden)
+        .frame(height: 40)
+        .padding(12)
       }
     }
-    .accessibilityLabel("Resource use for this run")
   }
 
   private var toggles: some View {
-    VStack(alignment: .leading) {
+    StuffCard {
       jobToggle("Open terminal on start", keyPath: \.openTerminalOnStart)
       jobToggle("Start when RunStuff launches", keyPath: \.autostartOnLaunch)
       jobToggle("Restart if it crashes", keyPath: \.restartOnCrash)
@@ -490,14 +695,22 @@ private struct JobDetailView: View {
           var job = snapshot.job
           job[keyPath: keyPath] = value
           Task { await model.update(job) }
-        }))
+        })
+    )
+    .padding(12)
+    .frame(maxWidth: .infinity)
+    .overlay(alignment: .bottom) { Divider().padding(.horizontal, 12) }
   }
 
   private func detail(_ label: String, _ value: String) -> some View {
-    VStack(alignment: .leading, spacing: 1) {
-      Text(label).font(.caption).foregroundStyle(.secondary)
-      Text(value).font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+    HStack(alignment: .firstTextBaseline, spacing: 16) {
+      Text(label).foregroundStyle(RunStuffStyle.secondary)
+      Spacer(minLength: 0)
+      Text(value).font(RunStuffStyle.code).textSelection(.enabled)
+        .multilineTextAlignment(.trailing)
+        .fixedSize(horizontal: false, vertical: true)
     }
+    .padding(12)
   }
 
   private func healthReason(_ reason: String, color: SwiftUI.Color) -> some View {
@@ -521,10 +734,6 @@ extension RunState {
     case .failedToStart: "Failed"
     }
   }
-}
-
-private func jobColor(_ seed: Int) -> SwiftUI.Color {
-  SwiftUI.Color(hue: Double(seed.magnitude % 360) / 360, saturation: 0.62, brightness: 0.82)
 }
 
 private func elapsed(since start: ContinuousClock.Instant) -> String {
@@ -562,9 +771,28 @@ private func downsample(_ metrics: [JobMetric], maximumCount: Int) -> [JobMetric
 struct SettingsView: View {
   @ObservedObject var settings: AppSettings
   @ObservedObject var updates: UpdateController
+  @ObservedObject var notifications: NotificationService
+  @Environment(\.scenePhase) private var scenePhase
 
   var body: some View {
     Form {
+      Section("Notifications") {
+        Text(notifications.permissionSummary)
+          .font(RunStuffStyle.caption)
+          .foregroundStyle(RunStuffStyle.secondary)
+        HStack {
+          if notifications.authorizationStatus == .notDetermined {
+            Button("Enable Notifications") { Task { await notifications.requestPermission() } }
+          }
+          Button("Notification Settings…") {
+            if let url = URL(
+              string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+            {
+              NSWorkspace.shared.open(url)
+            }
+          }
+        }
+      }
       Toggle(
         "Launch RunStuff at login",
         isOn: Binding(
@@ -635,6 +863,11 @@ struct SettingsView: View {
     .formStyle(.grouped)
     .padding()
     .frame(width: 540, height: 520)
+    .stuffTheme()
+    .task { await notifications.refreshAuthorization() }
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active { Task { await notifications.refreshAuthorization() } }
+    }
   }
 }
 
@@ -674,6 +907,7 @@ struct OrphanRecoveryView: View {
     }
     .padding(24)
     .frame(width: 560)
+    .stuffTheme()
     .interactiveDismissDisabled()
   }
 }

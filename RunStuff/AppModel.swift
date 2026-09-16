@@ -63,6 +63,7 @@ final class AppModel: ObservableObject {
       spoolDirectory: logs.path)
     attachServer = AttachServer(supervisor: supervisor)
     banner = startupBanner
+    notifications.errorHandler = { [weak self] message in self?.banner = message }
     notifications.actionHandler = { [weak self] jobID, action in
       guard let self else { return }
       switch action {
@@ -70,6 +71,8 @@ final class AppModel: ObservableObject {
         self.openTerminal(jobID)
       case .restart:
         self.restart(jobID)
+      case .checkPortOwner(let port):
+        self.checkPortOwner(port)
       case .openBrowser(let port):
         if let url = URL(string: "http://localhost:\(port)") {
           NSWorkspace.shared.open(url)
@@ -83,6 +86,7 @@ final class AppModel: ObservableObject {
   }
 
   func start() {
+    Task { await notifications.refreshAuthorization() }
     updates.startIfConfigured()
     do {
       try attachServer.start()
@@ -116,6 +120,7 @@ final class AppModel: ObservableObject {
   }
 
   func start(_ jobID: UUID) {
+    Task { await notifications.requestPermission() }
     Task {
       do {
         try await supervisor.start(jobID: jobID)
@@ -161,6 +166,47 @@ final class AppModel: ObservableObject {
     previewWindows[id] = controller
     controller.show()
     return controller
+  }
+
+  func checkPortOwner(_ port: UInt16) {
+    guard port > 0 else { return }
+    let command = """
+      owners=$(/usr/sbin/lsof -nP -iTCP:\(port) -sTCP:LISTEN)
+      result=$?
+      printf '%s\\n' "$owners"
+      if [ "$result" -eq 1 ]; then
+        printf '\\nNo TCP listener is visible on port \(port). It may have exited, or its details may require additional permissions.\\n'
+      elif [ "$result" -ne 0 ]; then
+        printf '\\nThe owner lookup failed. See the lsof message above.\\n'
+      else
+        pids=$(printf '%s\\n' "$owners" | /usr/bin/awk 'NR > 1 && $2 ~ /^[0-9]+$/ && $2 > 1 {print $2}' | /usr/bin/sort -un)
+        printf '\\nCopy Stop Command\\n'
+        printf '%s\\n' "$pids" | while IFS= read -r owner_pid; do
+          [ -n "$owner_pid" ] && printf '  PID %s: kill -TERM %s\\n' "$owner_pid" "$owner_pid"
+        done
+        printf '\\nThis stops the process shown. Check the owner again if you run this later.\\n'
+        printf 'Nothing will be stopped or restarted here.\\n\\n'
+        printf 'Enter a PID above to copy its stop command (Return to finish): '
+        IFS= read -r selected_pid
+        if [ -n "$selected_pid" ]; then
+          if printf '%s\\n' "$pids" | /usr/bin/grep -Fxq -- "$selected_pid"; then
+            if printf 'kill -TERM %s' "$selected_pid" | /usr/bin/pbcopy; then
+              printf '\\nCopied: kill -TERM %s\\nReview and run it in your terminal, then restart your Stuff.\\n' "$selected_pid"
+            else
+              printf '\\nCould not copy the command. Your clipboard may be unavailable.\\n'
+            fi
+          else
+            printf '\\nThat PID was not in the owner lookup. Nothing was copied.\\n'
+          fi
+        fi
+      fi
+      """
+    testRun(
+      Job(
+        name: "TCP port \(port) — current owner", command: command,
+        workingDirectory: FileManager.default.homeDirectoryForCurrentUser,
+        shellMode: .login, colorSeed: 0))
+    closePanel?()
   }
 
   func panelVisibilityChanged(_ visible: Bool) {
@@ -336,40 +382,48 @@ final class AppModel: ObservableObject {
         jobs.append(snapshot)
       }
       jobs.sort { $0.job.name.localizedCaseInsensitiveCompare($1.job.name) == .orderedAscending }
-    case .jobExited(let jobID, let status, let userInitiated):
+    case .jobExited(let jobID, let status, let userInitiated, let failure, let reportedPortConflict):
       guard !userInitiated, let name = jobs.first(where: { $0.job.id == jobID })?.job.name else {
         return
       }
-      await notifications.jobExited(jobID: jobID, name: name, status: status)
+      Task {
+        await notifications.jobExited(
+          jobID: jobID, name: name, status: status, failure: failure,
+          reportedPortConflict: reportedPortConflict)
+      }
     case .jobFailedToStart(let jobID, let message):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-      await notifications.failedToStart(jobID: jobID, name: name, message: message)
+      Task { await notifications.failedToStart(jobID: jobID, name: name, message: message) }
     case .outputChanged(let jobID):
       output[jobID] = await supervisor.outputTail(jobID: jobID, lineCount: 6)
-    case .signalMatched(let jobID, let rule, _, let shouldNotify):
+    case .signalMatched(let jobID, let rule, let line, let shouldNotify):
       if shouldNotify {
         let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-        await notifications.signalMatched(jobID: jobID, name: name, rule: rule)
+        Task { await notifications.signalMatched(jobID: jobID, name: name, rule: rule, line: line) }
       }
     case .readyDetected(let jobID, let port):
       if let job = jobs.first(where: { $0.job.id == jobID })?.job,
         job.notifyWhenReady
       {
-        await notifications.ready(jobID: jobID, name: job.name, port: port)
+        Task { await notifications.ready(jobID: jobID, name: job.name, port: port) }
       }
     case .waitingForInput(let jobID):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-      await notifications.waitingForInput(jobID: jobID, name: name)
+      Task { await notifications.waitingForInput(jobID: jobID, name: name) }
     case .sustainedHighCPU(let jobID, let cpuPercent):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-      await notifications.sustainedHighCPU(
-        jobID: jobID, name: name, cpuPercent: cpuPercent)
+      Task {
+        await notifications.sustainedHighCPU(
+          jobID: jobID, name: name, cpuPercent: cpuPercent)
+      }
     case .restartScheduled(let jobID, _, let attempt):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-      await notifications.restarting(jobID: jobID, name: name, attempt: attempt)
+      Task { await notifications.restarting(jobID: jobID, name: name, attempt: attempt) }
     case .restartLoopExhausted(let jobID, let attempts):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
-      await notifications.restartLoopExhausted(jobID: jobID, name: name, attempts: attempts)
+      Task {
+        await notifications.restartLoopExhausted(jobID: jobID, name: name, attempts: attempts)
+      }
     case .orphaned(let records):
       orphans = records
       banner =

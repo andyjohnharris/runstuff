@@ -21,7 +21,8 @@ final class SupervisorTests: XCTestCase {
   }
 
   func testANSIWrappedSignalRuleChangesHealthWithoutChangingRawOutput() async throws {
-    let context = try TestContext(script: "printf '\\033[31mEADDRINUSE\\033[0m\\n'\n")
+    let context = try TestContext(
+      script: "printf '\\033[31mEADDRINUSE: socket busy\\033[0m\\n'; exit 1\n")
     defer { context.remove() }
     let rule = SignalRule(pattern: "EADDRINUSE", severity: .error, notify: true)
     let supervisor = try context.makeSupervisor(signals: [rule])
@@ -32,10 +33,141 @@ final class SupervisorTests: XCTestCase {
     guard case .error(let reason, _) = snapshot.health else {
       return XCTFail("expected signal rule to set error health, got \(snapshot.health)")
     }
-    XCTAssertEqual(reason, "EADDRINUSE")
+    XCTAssertEqual(reason, "EADDRINUSE: socket busy")
+    XCTAssertEqual(snapshot.failure?.summary, "EADDRINUSE: socket busy")
     let output = await supervisor.output(jobID: context.job.id)
     XCTAssertTrue(output[0].raw.contains(0x1B))
-    XCTAssertEqual(output[0].stripped, "EADDRINUSE\r\n")
+    XCTAssertEqual(output[0].stripped, "EADDRINUSE: socket busy\r\n")
+  }
+
+  func testPortConflictParsingUsesTheBindAddressNotOtherNumbers() {
+    let line =
+      #"smokescreen | {"level":"fatal","msg":"can't find listenerlisten tcp :3400: bind: address already in use","time":"2026-09-16T18:01:23+10:00"}"#
+    let failure = FailureDiagnostic.portConflict(in: line)
+    XCTAssertEqual(failure?.conflictingPort, 3400)
+    XCTAssertEqual(failure?.summary, "Could not listen on TCP port 3400: address already in use.")
+    XCTAssertEqual(failure?.evidence, line)
+    XCTAssertEqual(
+      FailureDiagnostic.portConflict(
+        in: "Error: listen EADDRINUSE: address already in use :::5173")?.conflictingPort, 5173)
+    XCTAssertEqual(
+      FailureDiagnostic.portConflict(in: "listen tcp [::1]:65535: bind: address already in use")?
+        .conflictingPort, 65535)
+    for text in [
+      "listen tcp :65536: bind: address already in use",
+      "listen tcp :0: bind: address already in use",
+      "Listening on port 3100; error count 3400",
+      "EADDRINUSE in documentation for port 3400",
+      "dial tcp :3400: bind: address already in use",
+    ] {
+      XCTAssertNil(FailureDiagnostic.portConflict(in: text), text)
+    }
+  }
+
+  func testPumaPortConflictRetainsEvidenceAndRejectsOtherErrors() {
+    let line =
+      #"puma-agent | /ruby/4.0.6/gems/puma-7.2.1/lib/puma/binder.rb:344:in 'TCPServer#initialize': Address already in use - bind(2) for "0.0.0.0" port 3800 (Errno::EADDRINUSE)"#
+    let diagnostic = FailureDiagnostic.portConflict(in: line)
+    XCTAssertEqual(diagnostic?.conflictingPort, 3800)
+    XCTAssertEqual(
+      diagnostic?.summary, "Could not listen on TCP port 3800: address already in use.")
+    XCTAssertEqual(diagnostic?.evidence, line)
+    XCTAssertEqual(FailureDiagnostic.matchedLine(line), diagnostic)
+    for invalid in [
+      line.replacingOccurrences(of: "port 3800", with: "port 0"),
+      line.replacingOccurrences(of: "port 3800", with: "port 65536"),
+      line.replacingOccurrences(of: "Errno::EADDRINUSE", with: "Errno::EACCES"),
+      line.replacingOccurrences(of: "TCPServer#initialize", with: "UDPSocket#bind"),
+    ] {
+      XCTAssertNil(FailureDiagnostic.portConflict(in: invalid), invalid)
+    }
+  }
+
+  func testExitEventIncludesFinalUnterminatedFailureAndEvidenceResetsOnNextRun() async throws {
+    let context = try TestContext(
+      script: """
+        if [ -e once ]; then exit 0; fi
+        touch once
+        printf 'listen tcp :3400: bind: address already in use'
+        exit 1
+        """)
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    let snapshot = try await waitForCompletion(supervisor, jobID: context.job.id)
+    XCTAssertEqual(snapshot.failure?.conflictingPort, 3400)
+    var sawFinalSnapshot = false
+    for await event in supervisor.events {
+      if case .jobChanged(let snapshot) = event, snapshot.pid == nil,
+        snapshot.failure?.conflictingPort == 3400
+      {
+        sawFinalSnapshot = true
+      }
+      if case .jobExited(let id, let status, let userInitiated, let failure, _) = event {
+        XCTAssertEqual(id, context.job.id)
+        XCTAssertEqual(status, .exited(code: 1))
+        XCTAssertFalse(userInitiated)
+        XCTAssertTrue(sawFinalSnapshot)
+        XCTAssertEqual(failure?.conflictingPort, 3400)
+        break
+      }
+    }
+    try await supervisor.start(jobID: context.job.id)
+    let restarted = try await waitForCompletion(supervisor, jobID: context.job.id)
+    XCTAssertEqual(restarted.health, .ok)
+    XCTAssertNil(restarted.failure)
+    XCTAssertNil(restarted.reportedPortConflict)
+    for await event in supervisor.events {
+      if case .jobExited(_, _, _, _, let reportedPortConflict) = event {
+        XCTAssertNil(reportedPortConflict)
+        break
+      }
+    }
+  }
+
+  func testConflictTextDoesNotTurnCleanExitIntoFailure() async throws {
+    let context = try TestContext(
+      script: """
+        printf '%s\\n' 'smokescreen | {"level":"fatal","msg":"can’t find listenerlisten tcp :3400: bind: address already in use"}'
+        printf '%s\\n' 'smokescreen | Exited with code 1' 'puma | Interrupting...' 'puma | Exited with code 0'
+        exit 0
+        """)
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    let snapshot = try await waitForCompletion(supervisor, jobID: context.job.id)
+    XCTAssertEqual(snapshot.health, .ok)
+    XCTAssertNil(snapshot.failure)
+    XCTAssertEqual(snapshot.reportedPortConflict?.conflictingPort, 3400)
+    var sawReportedSnapshot = false
+    for await event in supervisor.events {
+      if case .jobChanged(let changed) = event,
+        changed.reportedPortConflict?.conflictingPort == 3400
+      {
+        sawReportedSnapshot = true
+      }
+      if case .jobExited(_, let status, let userInitiated, let failure, let reportedPortConflict) =
+        event
+      {
+        XCTAssertTrue(sawReportedSnapshot)
+        XCTAssertEqual(status, .exited(code: 0))
+        XCTAssertFalse(userInitiated)
+        XCTAssertNil(failure)
+        XCTAssertEqual(reportedPortConflict?.conflictingPort, 3400)
+        XCTAssertTrue(reportedPortConflict?.evidence.contains("smokescreen") == true)
+        break
+      }
+    }
+    let configured = try context.makeSupervisor(signals: [
+      SignalRule(pattern: "address already in use", severity: .error, notify: true)
+    ])
+    try await configured.start(jobID: context.job.id)
+    let matched = try await waitForCompletion(configured, jobID: context.job.id)
+    XCTAssertEqual(matched.state, .exited(code: 0))
+    XCTAssertEqual(matched.failure?.conflictingPort, 3400)
+    guard case .error = matched.health else {
+      return XCTFail("the explicit rule must still mark failure")
+    }
   }
 
   func testOutputReadyRuleMatchesStrippedOutputOnce() async throws {
@@ -127,15 +259,31 @@ final class SupervisorTests: XCTestCase {
   }
 
   func testUserStopDoesNotMarkJobUnhealthy() async throws {
-    let context = try TestContext(script: "while :; do sleep 1; done\n")
+    let context = try TestContext(
+      script:
+        "printf 'listen tcp :3400: bind: address already in use\\n'; while :; do sleep 1; done\n")
     defer { context.remove() }
     let supervisor = try context.makeSupervisor(signals: [])
 
     try await supervisor.start(jobID: context.job.id)
+    let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+    while await supervisor.output(jobID: context.job.id).isEmpty, ContinuousClock.now < deadline {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    let outputBeforeStop = await supervisor.output(jobID: context.job.id)
+    XCTAssertFalse(outputBeforeStop.isEmpty)
     try await supervisor.stop(jobID: context.job.id, grace: .seconds(1))
     let snapshot = try await waitForCompletion(supervisor, jobID: context.job.id)
 
     XCTAssertEqual(snapshot.health, .ok)
+    XCTAssertNil(snapshot.failure)
+    XCTAssertNil(snapshot.reportedPortConflict)
+    for await event in supervisor.events {
+      if case .jobExited(_, _, let userInitiated, _, _) = event {
+        XCTAssertTrue(userInitiated)
+        break
+      }
+    }
   }
 
   func testPreviousSessionCanAdoptAndStopARecordedJob() async throws {

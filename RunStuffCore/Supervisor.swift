@@ -14,11 +14,15 @@ public struct JobSnapshot: Sendable, Equatable {
   public let diagnostics: CommandDiagnostics?
   public let isAdopted: Bool
   public let isReady: Bool
+  public let failure: FailureDiagnostic?
+  public let reportedPortConflict: FailureDiagnostic?
 }
 
 public enum SupervisorEvent: Sendable {
   case jobChanged(JobSnapshot)
-  case jobExited(jobID: UUID, status: ExitStatus, userInitiated: Bool)
+  case jobExited(
+    jobID: UUID, status: ExitStatus, userInitiated: Bool, failure: FailureDiagnostic?,
+    reportedPortConflict: FailureDiagnostic?)
   case jobFailedToStart(jobID: UUID, message: String)
   case outputChanged(jobID: UUID)
   case signalMatched(jobID: UUID, rule: SignalRule, line: String, shouldNotify: Bool)
@@ -66,7 +70,10 @@ public actor Supervisor {
     var startedAt: Date?
     var startedInstant: ContinuousClock.Instant?
     var stopRequested = false
-    var exitSeen = false
+    var exitStatus: ExitStatus?
+    var exitUserInitiated = false
+    var portConflict: FailureDiagnostic?
+    var failure: FailureDiagnostic?
     var drainSeen = false
     var outputStreamEnded = false
     var metric: JobMetric?
@@ -99,7 +106,10 @@ public actor Supervisor {
         listeningPorts: listeningPorts,
         diagnostics: diagnostics,
         isAdopted: adopted != nil,
-        isReady: readyDetected)
+        isReady: readyDetected,
+        failure: failure,
+        reportedPortConflict: runtime == nil && exitStatus != nil && !exitUserInitiated
+          ? portConflict : nil)
     }
   }
 
@@ -344,7 +354,10 @@ public actor Supervisor {
     entry.health = .ok
     entry.output = OutputBuffer()
     entry.stopRequested = false
-    entry.exitSeen = false
+    entry.exitStatus = nil
+    entry.exitUserInitiated = false
+    entry.portConflict = nil
+    entry.failure = nil
     entry.drainSeen = false
     entry.outputStreamEnded = false
     entry.metric = nil
@@ -618,6 +631,7 @@ public actor Supervisor {
       return line.sequence > oldSequence
     }
     for line in newLines {
+      entry.portConflict = entry.portConflict ?? FailureDiagnostic.portConflict(in: line.stripped)
       applySignalRules(to: line, entry: &entry, jobID: jobID)
       applyOutputReadyRule(to: line, entry: &entry, jobID: jobID)
     }
@@ -689,9 +703,12 @@ public actor Supervisor {
       case .info:
         break
       case .warning:
-        entry.health = .warning(reason: rule.pattern, since: now)
+        if case .error = entry.health { break }
+        entry.health = .warning(
+          reason: FailureDiagnostic.matchedLine(line.stripped).summary, since: now)
       case .error:
-        entry.health = .error(reason: rule.pattern, since: now)
+        entry.failure = entry.failure ?? FailureDiagnostic.matchedLine(line.stripped)
+        entry.health = .error(reason: entry.failure?.summary ?? rule.pattern, since: now)
       }
       let lastNotification = entry.lastNotificationByRule[index] ?? .distantPast
       let shouldNotify = rule.notify && now.timeIntervalSince(lastNotification) >= 60
@@ -706,10 +723,8 @@ public actor Supervisor {
     guard var entry = entries[jobID], entry.runtime?.pid == pid else { return }
     switch event {
     case .exited(let status, _):
-      entry.exitSeen = true
-      eventContinuation.yield(
-        .jobExited(
-          jobID: jobID, status: status, userInitiated: entry.stopRequested))
+      entry.exitStatus = status
+      entry.exitUserInitiated = entry.stopRequested
       switch status {
       case .exited(let code) where code == 127 && !entry.stopRequested:
         entry.state = .failedToStart(RunStuffMessage.commandNotFound)
@@ -740,7 +755,12 @@ public actor Supervisor {
     guard var entry = entries[jobID], entry.runtime?.pid == pid else { return }
     outputNotificationTasks[jobID]?.cancel()
     outputNotificationTasks[jobID] = nil
+    let lastSequence = entry.output.lines.last?.sequence
     entry.output.finish(at: Date())
+    if let line = entry.output.lines.last, line.sequence != lastSequence {
+      entry.portConflict = entry.portConflict ?? FailureDiagnostic.portConflict(in: line.stripped)
+      applySignalRules(to: line, entry: &entry, jobID: jobID)
+    }
     entry.outputStreamEnded = true
     entries[jobID] = entry
     eventContinuation.yield(.outputChanged(jobID: jobID))
@@ -749,8 +769,15 @@ public actor Supervisor {
 
   private func completeIfFinished(jobID: UUID, pid: pid_t) async {
     guard var entry = entries[jobID], entry.runtime?.pid == pid,
-      entry.exitSeen, entry.drainSeen, entry.outputStreamEnded, let runtime = entry.runtime
+      let status = entry.exitStatus, entry.drainSeen, entry.outputStreamEnded,
+      let runtime = entry.runtime
     else { return }
+    if !entry.exitUserInitiated {
+      if status != .exited(code: 0) { entry.failure = entry.portConflict ?? entry.failure }
+      if let failure = entry.failure {
+        entry.health = .error(reason: failure.summary, since: Date())
+      }
+    }
     entry.runtime = nil
     entry.previousReading = nil
     entry.listeningPorts = []
@@ -769,8 +796,14 @@ public actor Supervisor {
     } catch {
       eventContinuation.yield(.persistenceFailed(String(describing: error)))
     }
-    await runtime.close()
     publish(jobID)
+    eventContinuation.yield(
+      .jobExited(
+        jobID: jobID, status: status, userInitiated: entry.exitUserInitiated,
+        failure: entry.failure,
+        reportedPortConflict: entry.portConflict
+      ))
+    await runtime.close()
     scheduleCrashRestartIfNeeded(jobID: jobID)
   }
 

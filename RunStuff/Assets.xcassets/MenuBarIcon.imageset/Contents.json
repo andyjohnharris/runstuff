@@ -1,15 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "runstuff-menubar-icon.pdf",
+      "filename" : "menubaricon-runstuff-18.pdf",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "menubaricon-runstuff-36.pdf",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "filename" : "menubaricon-runstuff-54.pdf",
       "idiom" : "universal",
       "scale" : "3x"
     }

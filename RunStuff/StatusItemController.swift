@@ -13,7 +13,8 @@ final class StatusItemController: NSObject {
   init(model: AppModel) {
     self.model = model
     panel = RunStuffPanel(
-      contentRect: NSRect(x: 0, y: 0, width: 380, height: 500),
+      contentRect: NSRect(
+        x: 0, y: 0, width: RunStuffStyle.panelWidth, height: RunStuffStyle.panelHeight),
       styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
       backing: .buffered,
       defer: false)
@@ -32,7 +33,7 @@ final class StatusItemController: NSObject {
     material.blendingMode = .behindWindow
     material.state = .active
     material.wantsLayer = true
-    material.layer?.cornerRadius = 12
+    material.layer?.cornerRadius = 20
     material.layer?.masksToBounds = true
     let hosting = NSHostingView(rootView: RootView(model: model))
     hosting.translatesAutoresizingMaskIntoConstraints = false

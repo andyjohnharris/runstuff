@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import RunStuffCore
 import UserNotifications
@@ -6,13 +7,17 @@ enum NotificationAction: Sendable {
   case viewOutput
   case restart
   case openBrowser(UInt16)
+  case checkPortOwner(UInt16)
 }
 
 @MainActor
-final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
+final class NotificationService: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
   var actionHandler: ((UUID, NotificationAction) -> Void)?
+  var errorHandler: ((String) -> Void)?
   var soundsEnabled = true
-  private var authorizationRequested = false
+  @Published private(set) var permissionSummary = "Checking notification permission…"
+  @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
+  private var authorizationTask: Task<Void, Never>?
   private var lastSoundAt = Date.distantPast
 
   override init() {
@@ -21,9 +26,17 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     center.delegate = self
     center.setNotificationCategories([
       UNNotificationCategory(
+        identifier: "RunStuff.PortConflict",
+        actions: [
+          UNNotificationAction(
+            identifier: "checkPort", title: "Check Port Owner", options: [.foreground]),
+          UNNotificationAction(identifier: "view", title: "View Output", options: [.foreground]),
+          UNNotificationAction(identifier: "restart", title: "Restart"),
+        ], intentIdentifiers: []),
+      UNNotificationCategory(
         identifier: "RunStuff.Failure",
         actions: [
-          UNNotificationAction(identifier: "view", title: "View Output"),
+          UNNotificationAction(identifier: "view", title: "View Output", options: [.foreground]),
           UNNotificationAction(identifier: "restart", title: "Restart"),
         ],
         intentIdentifiers: []),
@@ -49,9 +62,27 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     ])
   }
 
-  func jobExited(jobID: UUID, name: String, status: ExitStatus) async {
+  func jobExited(
+    jobID: UUID, name: String, status: ExitStatus, failure: FailureDiagnostic?,
+    reportedPortConflict: FailureDiagnostic?
+  ) async {
+    if let failure {
+      await send(
+        jobID: jobID, port: failure.conflictingPort, title: "\(name) reported a failure",
+        body: failure.summary,
+        category: failure.conflictingPort == nil ? "RunStuff.Failure" : "RunStuff.PortConflict",
+        sound: true)
+      return
+    }
     switch status {
     case .exited(let code) where code == 0:
+      if let port = reportedPortConflict?.conflictingPort {
+        await send(
+          jobID: jobID, port: port, title: "\(name) finished — check output",
+          body: "Output reported TCP port \(port) already in use. The command exited with code 0.",
+          category: "RunStuff.PortConflict", sound: true)
+        return
+      }
       await send(
         jobID: jobID, title: "\(name) finished", body: "Exited successfully",
         category: "RunStuff.Finished", sound: false)
@@ -62,7 +93,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     case .exited(let code):
       await send(
         jobID: jobID, title: "\(name) exited with code \(code)",
-        body: "Open RunStuff to view its output", category: "RunStuff.Failure", sound: true)
+        body: "The command stopped unexpectedly. View Output for details.",
+        category: "RunStuff.Failure", sound: true)
     case .signalled(let signal, _):
       await send(
         jobID: jobID, title: "\(name) crashed", body: signalName(signal),
@@ -76,10 +108,12 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
       category: "RunStuff.Failure", sound: true)
   }
 
-  func signalMatched(jobID: UUID, name: String, rule: SignalRule) async {
+  func signalMatched(jobID: UUID, name: String, rule: SignalRule, line: String) async {
+    let diagnostic = FailureDiagnostic.matchedLine(line)
     await send(
-      jobID: jobID, title: "\(name): \(rule.severity.rawValue)", body: rule.pattern,
-      category: "RunStuff.Failure",
+      jobID: jobID, port: diagnostic.conflictingPort,
+      title: "\(name): \(rule.severity.rawValue)", body: diagnostic.summary,
+      category: diagnostic.conflictingPort == nil ? "RunStuff.Failure" : "RunStuff.PortConflict",
       interruptionLevel: rule.severity == .error ? .active : .passive,
       sound: rule.severity == .error)
   }
@@ -117,6 +151,45 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
       category: "RunStuff.Failure", interruptionLevel: .passive, sound: false)
   }
 
+  func refreshAuthorization() async {
+    let settings = await UNUserNotificationCenter.current().notificationSettings()
+    authorizationStatus = settings.authorizationStatus
+    switch settings.authorizationStatus {
+    case .notDetermined:
+      permissionSummary = "Enable notifications to receive exit and failure alerts."
+    case .denied:
+      permissionSummary =
+        "Notifications are disabled. Enable RunStuff in System Settings → Notifications."
+    case .authorized, .provisional, .ephemeral:
+      permissionSummary =
+        settings.alertSetting == .enabled
+        ? "Notifications are enabled. Focus and macOS settings may silence alerts."
+        : "Notification banners are disabled. Check RunStuff in System Settings → Notifications."
+    @unknown default:
+      permissionSummary = "Check RunStuff in System Settings → Notifications."
+    }
+  }
+
+  func requestPermission() async {
+    if let authorizationTask {
+      await authorizationTask.value
+      return
+    }
+    let task = Task { @MainActor in
+      do {
+        _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [
+          .alert, .sound,
+        ])
+      } catch {
+        errorHandler?("Could not request notification permission: \(error.localizedDescription)")
+      }
+      await refreshAuthorization()
+    }
+    authorizationTask = task
+    await task.value
+    authorizationTask = nil
+  }
+
   private func send(
     jobID: UUID,
     port: UInt16? = nil,
@@ -127,11 +200,11 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     sound: Bool
   ) async {
     let center = UNUserNotificationCenter.current()
-    if !authorizationRequested {
-      authorizationRequested = true
-      guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else {
-        return
-      }
+    await refreshAuthorization()
+    if authorizationStatus == .notDetermined { await requestPermission() }
+    guard authorizationStatus == .authorized || authorizationStatus == .provisional else {
+      errorHandler?(permissionSummary)
+      return
     }
     let content = UNMutableNotificationContent()
     content.title = title
@@ -146,9 +219,21 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         named: UNNotificationSoundName("RunStuffError.wav"))
       lastSoundAt = Date()
     }
-    try? await center.add(
-      UNNotificationRequest(
-        identifier: UUID().uuidString, content: content, trigger: nil))
+    do {
+      try await center.add(
+        UNNotificationRequest(
+          identifier: "\(jobID.uuidString).\(category)", content: content, trigger: nil))
+    } catch {
+      errorHandler?("Could not deliver a notification for \(title): \(error.localizedDescription)")
+    }
+  }
+
+  nonisolated func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    completionHandler([.banner, .list, .sound])
   }
 
   nonisolated func userNotificationCenter(
@@ -167,6 +252,8 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
       action = .restart
     case "browser":
       action = port.map(NotificationAction.openBrowser)
+    case "checkPort":
+      action = port.flatMap { $0 > 0 ? .checkPortOwner($0) : nil }
     default:
       action = nil
     }

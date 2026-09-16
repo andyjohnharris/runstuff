@@ -33,6 +33,20 @@ private struct JobEditorView: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      HStack(spacing: 12) {
+        Image(systemName: "terminal")
+          .font(RunStuffStyle.title)
+          .foregroundStyle(RunStuffStyle.mint)
+        VStack(alignment: .leading, spacing: 4) {
+          Text(model.jobs.contains { $0.job.id == job.id } ? "Edit Stuff" : "Add Stuff")
+            .font(RunStuffStyle.title)
+          Text("A command, a folder, and how it should run.")
+            .foregroundStyle(RunStuffStyle.secondary)
+        }
+        Spacer()
+      }
+      .padding(20)
+      .background(RunStuffStyle.surface)
       Form {
         Section("Stuff") {
           TextField("Name", text: $job.name)
@@ -200,13 +214,16 @@ private struct JobEditorView: View {
           .disabled(!canTest)
         Spacer()
         Button("Save") { save() }
-          .buttonStyle(.borderedProminent)
+          .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
           .keyboardShortcut(.defaultAction)
           .disabled(!isValid)
       }
+      .buttonStyle(StuffButtonStyle())
       .padding()
+      .background(RunStuffStyle.surface)
     }
     .frame(minWidth: 560, minHeight: 820)
+    .stuffTheme()
     .navigationTitle(model.jobs.contains { $0.job.id == job.id } ? "Edit Stuff" : "Add Stuff")
     .onAppear { commandSuggestions = suggestedCommands(in: job.workingDirectory) }
   }
@@ -257,6 +274,7 @@ private struct JobEditorView: View {
 
   private static let suggestedRules = [
     SignalRule(pattern: "EADDRINUSE", severity: .error, notify: true),
+    SignalRule(pattern: "bind: address already in use", severity: .error, notify: true),
     SignalRule(pattern: "ELIFECYCLE", severity: .error, notify: true),
     SignalRule(pattern: "Cannot find module", severity: .error, notify: true),
   ]
