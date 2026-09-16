@@ -2,9 +2,9 @@
 //
 // posix_spawn cannot give a child a controlling terminal: acquiring one needs
 // ioctl(slave, TIOCSCTTY) run in the child after SETSID and before exec, and
-// posix_spawn has no hook there and macOS has no POSIX_SPAWN_SETCTTY. The
-// phase 0 spike proved a raw spawned program gets no ctty (open("/dev/tty")
-// fails); shells only worked because they acquire it themselves on startup.
+// posix_spawn has no hook there and macOS has no POSIX_SPAWN_SETCTTY. Without
+// the helper, a raw spawned program cannot open /dev/tty; shells may acquire
+// a controlling terminal themselves on startup.
 //
 // So the supervisor posix_spawns this helper instead of the command. By then
 // POSIX_SPAWN_SETSID has made the helper a session leader and the file actions

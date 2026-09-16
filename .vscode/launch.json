@@ -1,0 +1,64 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Debug runstuff-tty-helper",
+            "target": "runstuff-tty-helper",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug runstuff-tty-helper"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Release runstuff-tty-helper",
+            "target": "runstuff-tty-helper",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release runstuff-tty-helper"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Debug runstuff-acceptance",
+            "target": "runstuff-acceptance",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug runstuff-acceptance"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Release runstuff-acceptance",
+            "target": "runstuff-acceptance",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release runstuff-acceptance"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Debug runstuff",
+            "target": "runstuff",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug runstuff"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:runstuff}",
+            "name": "Release runstuff",
+            "target": "runstuff",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release runstuff"
+        }
+    ]
+}

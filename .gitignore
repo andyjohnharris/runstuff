@@ -2,7 +2,5 @@
 xcuserdata/
 *.xcuserstate
 /.build/
-spike/.build/
-spike/.swiftpm/
 fixtures/ctrl-c-raw
 fixtures/winch-fg

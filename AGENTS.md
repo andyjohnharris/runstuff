@@ -9,7 +9,7 @@ RunStuff is a macOS menu bar app for supervising local development servers and o
 - `RunStuffCLI/`: `runstuff` command-line client for list, start, stop, and attach.
 - `RunStuffTTYHelper/`: C helper that acquires the controlling terminal before executing a job.
 - `RunStuffCoreTests/`: SwiftPM and Xcode unit and integration tests.
-- `spike/Sources/runstuff-spike/` and `fixtures/`: process-layer acceptance harness and fixtures. Despite the historical name, these remain active regression coverage.
+- `RunStuffAcceptance/` and `fixtures/`: process-layer acceptance harness and fixtures.
 
 The UI calls a configured process “Stuff”. The code calls it a `Job`.
 
@@ -20,7 +20,7 @@ Use Xcode’s **RunStuff** scheme for local development. Keep Debug builds restr
 ```sh
 # Format Swift sources
 xcrun swift-format format --in-place --recursive \
-  RunStuff RunStuffCLI RunStuffCore RunStuffCoreTests spike/Sources/runstuff-spike
+  RunStuff RunStuffCLI RunStuffCore RunStuffCoreTests RunStuffAcceptance
 
 # Unit and integration tests
 swift test
@@ -28,7 +28,7 @@ xcodebuild -project RunStuff.xcodeproj -scheme RunStuff \
   -configuration Debug -destination 'platform=macOS,name=My Mac' test
 
 # Process acceptance suite
-swift run runstuff-spike --all "$PWD/fixtures"
+swift run runstuff-acceptance --all "$PWD/fixtures"
 ```
 
 Builds treat warnings as errors. Run the narrowest relevant test while iterating, then run both test suites before committing changes to process management or shared core code. Run the acceptance suite for PTY, spawn, signal, resize, drain, reaping, shell, or process-tree changes.

@@ -19,12 +19,12 @@ let package = Package(
       linkerSettings: [.linkedFramework("Security")]
     ),
     .executableTarget(
-      name: "runstuff-spike",
+      name: "runstuff-acceptance",
       dependencies: [
         "RunStuffCore",
         .product(name: "SwiftTerm", package: "SwiftTerm"),
       ],
-      path: "spike/Sources/runstuff-spike",
+      path: "RunStuffAcceptance",
       swiftSettings: strict
     ),
     .executableTarget(
@@ -34,7 +34,7 @@ let package = Package(
       swiftSettings: strict
     ),
     // C helper that acquires the controlling terminal before exec, which
-    // posix_spawn cannot do. Built next to runstuff-spike, which finds it
+    // posix_spawn cannot do. Built next to runstuff-acceptance, which finds it
     // automatically.
     .executableTarget(
       name: "runstuff-tty-helper",

@@ -67,6 +67,7 @@
 		100000000000000000000063 /* runstuff-cli in Copy Helper */ = {isa = PBXBuildFile; fileRef = 300000000000000000000006 /* runstuff-cli */; };
 		100000000000000000000064 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000000C /* Assets.xcassets */; };
 		100000000000000000000065 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000065 /* DesignSystem.swift */; };
+		100000000000000000000066 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = C00000000000000000000002 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,7 +189,7 @@
 		200000000000000000000065 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		300000000000000000000001 /* RunStuff.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunStuff.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		300000000000000000000002 /* libRunStuffCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRunStuffCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		300000000000000000000003 /* runstuff-phase1-fixtures */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-phase1-fixtures"; sourceTree = BUILT_PRODUCTS_DIR; };
+		300000000000000000000003 /* runstuff-acceptance */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-acceptance"; sourceTree = BUILT_PRODUCTS_DIR; };
 		300000000000000000000004 /* runstuff-tty-helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-tty-helper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		300000000000000000000005 /* RunStuffCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunStuffCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		300000000000000000000006 /* runstuff-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "runstuff-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -219,6 +220,7 @@
 			files = (
 				100000000000000000000052 /* libRunStuffCore.a in Frameworks */,
 				100000000000000000000058 /* Security.framework in Frameworks */,
+				100000000000000000000066 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -257,7 +259,7 @@
 				500000000000000000000004 /* RunStuff */,
 				500000000000000000000009 /* RunStuffCLI */,
 				500000000000000000000005 /* RunStuffCore */,
-				500000000000000000000006 /* spike/Sources/runstuff-spike */,
+				500000000000000000000006 /* RunStuffAcceptance */,
 				500000000000000000000007 /* RunStuffTTYHelper */,
 				500000000000000000000008 /* RunStuffCoreTests */,
 				500000000000000000000003 /* Products */,
@@ -272,7 +274,7 @@
 				300000000000000000000001 /* RunStuff.app */,
 				300000000000000000000006 /* runstuff-cli */,
 				300000000000000000000002 /* libRunStuffCore.a */,
-				300000000000000000000003 /* runstuff-phase1-fixtures */,
+				300000000000000000000003 /* runstuff-acceptance */,
 				300000000000000000000004 /* runstuff-tty-helper */,
 				300000000000000000000005 /* RunStuffCoreTests.xctest */,
 			);
@@ -323,7 +325,7 @@
 			path = RunStuffCore;
 			sourceTree = SOURCE_ROOT;
 		};
-		500000000000000000000006 /* spike/Sources/runstuff-spike */ = {
+		500000000000000000000006 /* RunStuffAcceptance */ = {
 			isa = PBXGroup;
 			children = (
 				200000000000000000000021 /* Check.swift */,
@@ -337,7 +339,7 @@
 				200000000000000000000029 /* Scenarios+Shell.swift */,
 				20000000000000000000002A /* main.swift */,
 			);
-			path = "spike/Sources/runstuff-spike";
+			path = RunStuffAcceptance;
 			sourceTree = SOURCE_ROOT;
 		};
 		500000000000000000000007 /* RunStuffTTYHelper */ = {
@@ -412,9 +414,9 @@
 			productReference = 300000000000000000000002 /* libRunStuffCore.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		800000000000000000000003 /* RunStuffPhase1Fixtures */ = {
+		800000000000000000000003 /* RunStuffAcceptance */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffPhase1Fixtures" */;
+			buildConfigurationList = 700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffAcceptance" */;
 			buildPhases = (
 				600000000000000000000003 /* Sources */,
 				600000000000000000000013 /* Frameworks */,
@@ -425,9 +427,12 @@
 				A00000000000000000000003 /* PBXTargetDependency */,
 				A00000000000000000000004 /* PBXTargetDependency */,
 			);
-			name = RunStuffPhase1Fixtures;
-			productName = "runstuff-phase1-fixtures";
-			productReference = 300000000000000000000003 /* runstuff-phase1-fixtures */;
+			name = RunStuffAcceptance;
+			packageProductDependencies = (
+				C00000000000000000000002 /* SwiftTerm */,
+			);
+			productName = "runstuff-acceptance";
+			productReference = 300000000000000000000003 /* runstuff-acceptance */;
 			productType = "com.apple.product-type.tool";
 		};
 		800000000000000000000004 /* runstuff-tty-helper */ = {
@@ -528,7 +533,7 @@
 				800000000000000000000001 /* RunStuff */,
 				800000000000000000000006 /* RunStuffCLI */,
 				800000000000000000000002 /* RunStuffCore */,
-				800000000000000000000003 /* RunStuffPhase1Fixtures */,
+				800000000000000000000003 /* RunStuffAcceptance */,
 				800000000000000000000004 /* runstuff-tty-helper */,
 				800000000000000000000005 /* RunStuffCoreTests */,
 			);
@@ -779,7 +784,7 @@
 		B00000000000000000000031 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "runstuff-phase1-fixtures";
+				PRODUCT_NAME = "runstuff-acceptance";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 6.0;
@@ -789,7 +794,7 @@
 		B00000000000000000000032 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "runstuff-phase1-fixtures";
+				PRODUCT_NAME = "runstuff-acceptance";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 6.0;
@@ -902,7 +907,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffPhase1Fixtures" */ = {
+		700000000000000000000013 /* Build configuration list for PBXNativeTarget "RunStuffAcceptance" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B00000000000000000000031 /* Debug */,

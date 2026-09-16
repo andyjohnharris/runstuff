@@ -12,6 +12,19 @@ The [design system](DESIGN.md) defines the app's colours, typography, reusable c
 
 RunStuff uses a login shell by default so Homebrew, mise, and asdf paths work from a GUI app. Select **Interactive login** for tools such as nvm that are loaded from `.zshrc`. Select **Direct** only when the executable is already available in the Stuff's configured `PATH`.
 
+## Tests
+
+Run unit and integration tests with `swift test` or the Xcode **RunStuff** scheme.
+The process acceptance harness lives in `RunStuffAcceptance/`, with scenarios backed by `fixtures/`:
+
+```sh
+swift run runstuff-acceptance --all "$PWD/fixtures"
+swift run runstuff-acceptance fixtures/exit-clean.sh
+swift run runstuff-acceptance --manual fixtures/colours.sh
+```
+
+Xcode builds the same harness with the **RunStuffAcceptance** scheme.
+
 ## Command-line tool
 
 Select **Install Command-Line Tool…** in Settings to create `/usr/local/bin/runstuff`. RunStuff prompts for administrator access when `/usr/local/bin` is not writable.

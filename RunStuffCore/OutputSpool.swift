@@ -21,7 +21,7 @@ final class OutputSpool {
   private(set) var chunks: [ChunkRecord] = []
 
   init(directory: String) throws(SpoolError) {
-    var template = Array("\(directory)/runstuff-spike-spool.XXXXXX".utf8CString)
+    var template = Array("\(directory)/runstuff-spool.XXXXXX".utf8CString)
     let fd = mkstemp(&template)
     guard fd >= 0 else { throw SpoolError.create(errno: errno) }
     self.fd = fd

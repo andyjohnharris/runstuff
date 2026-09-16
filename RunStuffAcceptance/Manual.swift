@@ -68,7 +68,7 @@ enum ManualRunner {
     let exit = await runtime.waitForExit(timeout: .seconds(30))
     stdinSource.cancel()
     winchSource.cancel()
-    let footer = "\r\n[runstuff-spike] \(exit.map { "\($0)" } ?? "no exit observed")\r\n"
+    let footer = "\r\n[runstuff-acceptance] \(exit.map { "\($0)" } ?? "no exit observed")\r\n"
     _ = footer.withCString { Darwin.write(1, $0, strlen($0)) }
     await h.finish(runtime)
     return 0

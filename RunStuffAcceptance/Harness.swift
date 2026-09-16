@@ -24,7 +24,7 @@ struct Harness: Sendable {
       workingDirectory: cwd ?? repoRoot,
       environment: SpawnEnvironment.layered(
         SpawnEnvironment.launchdLikeBase(),
-        SpawnEnvironment.jobDefaults(jobID: "spike", windowSize: windowSize),
+        SpawnEnvironment.jobDefaults(jobID: "acceptance", windowSize: windowSize),
         extraEnv),
       windowSize: windowSize,
       ttyHelperPath: ttyHelperPath)
@@ -39,7 +39,7 @@ struct Harness: Sendable {
       workingDirectory: cwd ?? repoRoot,
       environment: SpawnEnvironment.layered(
         SpawnEnvironment.launchdLikeBase(),
-        SpawnEnvironment.jobDefaults(jobID: "spike", windowSize: windowSize)),
+        SpawnEnvironment.jobDefaults(jobID: "acceptance", windowSize: windowSize)),
       windowSize: windowSize,
       ttyHelperPath: ttyHelperPath)
   }

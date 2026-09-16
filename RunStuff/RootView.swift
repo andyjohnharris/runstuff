@@ -687,16 +687,21 @@ private struct JobDetailView: View {
   }
 
   private func jobToggle(_ title: String, keyPath: WritableKeyPath<Job, Bool>) -> some View {
-    Toggle(
-      title,
-      isOn: Binding(
-        get: { snapshot.job[keyPath: keyPath] },
-        set: { value in
-          var job = snapshot.job
-          job[keyPath: keyPath] = value
-          Task { await model.update(job) }
-        })
-    )
+    HStack {
+      Text(title)
+      Spacer()
+      Toggle(
+        title,
+        isOn: Binding(
+          get: { snapshot.job[keyPath: keyPath] },
+          set: { value in
+            var job = snapshot.job
+            job[keyPath: keyPath] = value
+            Task { await model.update(job) }
+          })
+      )
+      .labelsHidden()
+    }
     .padding(12)
     .frame(maxWidth: .infinity)
     .overlay(alignment: .bottom) { Divider().padding(.horizontal, 12) }

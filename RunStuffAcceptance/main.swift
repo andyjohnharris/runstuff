@@ -2,11 +2,11 @@ import Darwin
 import Foundation
 import RunStuffCore
 
-// runstuff-spike: phase 0 harness.
+// Process acceptance harness.
 //
-//   runstuff-spike fixtures/<name>.sh        run one fixture's scenario and assert
-//   runstuff-spike --all [fixturesDir]        run every scenario
-//   runstuff-spike --manual fixtures/<name>.sh   act as a terminal for the fixture
+//   runstuff-acceptance fixtures/<name>.sh        run one fixture's scenario and assert
+//   runstuff-acceptance --all [fixturesDir]        run every scenario
+//   runstuff-acceptance --manual fixtures/<name>.sh   act as a terminal for the fixture
 //   options: --shell login|interactive|direct (manual mode), --verbose
 
 typealias Scenario = @Sendable (Harness) async -> ScenarioReport
@@ -45,9 +45,9 @@ let scenarios: [ScenarioEntry] = [
 func usage() -> Never {
   print(
     """
-    usage: runstuff-spike [--verbose] fixtures/<name>.sh
-           runstuff-spike [--verbose] --all [fixturesDir]
-           runstuff-spike [--shell login|interactive|direct] --manual fixtures/<name>.sh
+    usage: runstuff-acceptance [--verbose] fixtures/<name>.sh
+           runstuff-acceptance [--verbose] --all [fixturesDir]
+           runstuff-acceptance [--shell login|interactive|direct] --manual fixtures/<name>.sh
     """)
   exit(2)
 }
@@ -104,7 +104,7 @@ if all {
 }
 let repoRoot = URL(fileURLWithPath: fixturesDirectory).deletingLastPathComponent().path
 guard let executableDirectory = Bundle.main.executableURL?.deletingLastPathComponent() else {
-  fatalError("could not locate runstuff-spike executable directory")
+  fatalError("could not locate runstuff-acceptance executable directory")
 }
 let ttyHelperPath = executableDirectory.appendingPathComponent("runstuff-tty-helper").path
 guard FileManager.default.isExecutableFile(atPath: ttyHelperPath) else {
@@ -113,7 +113,7 @@ guard FileManager.default.isExecutableFile(atPath: ttyHelperPath) else {
 
 let spoolDirectory: String = {
   let base = ProcessInfo.processInfo.environment["TMPDIR"] ?? "/tmp"
-  let dir = "\(base)/runstuff-spike-\(getpid())"
+  let dir = "\(base)/runstuff-acceptance-\(getpid())"
   try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
   return dir
 }()
