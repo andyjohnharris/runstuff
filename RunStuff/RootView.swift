@@ -189,6 +189,13 @@ struct RootView: View {
       .keyboardShortcut("n", modifiers: .command)
       Spacer()
       Button {
+        model.openHistory()
+      } label: {
+        Image(systemName: "clock.arrow.circlepath")
+      }
+      .accessibilityLabel("History")
+      .help("Run history")
+      Button {
         openSettings()
       } label: {
         Image(systemName: "gearshape")
@@ -377,7 +384,7 @@ private struct JobDetailView: View {
       Divider()
       ScrollView {
         VStack(alignment: .leading, spacing: 10) {
-          if let failure = snapshot.failure ?? snapshot.reportedPortConflict {
+          if snapshot.pid != nil, let failure = snapshot.failure ?? snapshot.reportedPortConflict {
             StuffCard {
               VStack(alignment: .leading, spacing: 10) {
                 Label(failure.summary, systemImage: "exclamationmark.triangle.fill")
@@ -403,9 +410,9 @@ private struct JobDetailView: View {
               }
               .padding(12)
             }
-          } else if case .warning(let reason, _) = snapshot.health {
+          } else if snapshot.pid != nil, case .warning(let reason, _) = snapshot.health {
             healthReason(reason, color: .orange)
-          } else if case .error(let reason, _) = snapshot.health {
+          } else if snapshot.pid != nil, case .error(let reason, _) = snapshot.health {
             healthReason(reason, color: .red)
           }
           StuffCard {
@@ -420,26 +427,30 @@ private struct JobDetailView: View {
             }
           }
 
-          metricCharts
+          if snapshot.pid != nil {
+            metricCharts
+          }
 
-          StuffCard {
-            detail("Executable", snapshot.diagnostics?.resolvedExecutable ?? "Unavailable")
-            Divider()
-            detail(
-              "Version",
-              snapshot.diagnostics?.versionTimedOut == true
-                ? "Probe timed out" : snapshot.diagnostics?.executableVersion ?? "Unavailable")
-            Divider()
-            DisclosureGroup("PATH", isExpanded: $showsPATH) {
-              Text(snapshot.diagnostics?.effectivePATH ?? "Resolving…")
-                .font(RunStuffStyle.code)
-                .foregroundStyle(RunStuffStyle.secondary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 8)
+          if snapshot.pid != nil {
+            StuffCard {
+              detail("Executable", snapshot.diagnostics?.resolvedExecutable ?? "Unavailable")
+              Divider()
+              detail(
+                "Version",
+                snapshot.diagnostics?.versionTimedOut == true
+                  ? "Probe timed out" : snapshot.diagnostics?.executableVersion ?? "Unavailable")
+              Divider()
+              DisclosureGroup("PATH", isExpanded: $showsPATH) {
+                Text(snapshot.diagnostics?.effectivePATH ?? "Resolving…")
+                  .font(RunStuffStyle.code)
+                  .foregroundStyle(RunStuffStyle.secondary)
+                  .textSelection(.enabled)
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .padding(.top, 8)
+              }
+              .padding(12)
+              .animation(reduceMotion ? nil : RunStuffStyle.transition, value: showsPATH)
             }
-            .padding(12)
-            .animation(reduceMotion ? nil : RunStuffStyle.transition, value: showsPATH)
           }
 
           HStack {
@@ -453,15 +464,17 @@ private struct JobDetailView: View {
               NSPasteboard.general.clearContents()
               NSPasteboard.general.setString(snapshot.job.command, forType: .string)
             }
-            Button("Terminal", systemImage: "arrow.up.forward.square") {
-              model.openExternalTerminal(snapshot.job.id)
+            if snapshot.pid != nil {
+              Button("Terminal", systemImage: "arrow.up.forward.square") {
+                model.openExternalTerminal(snapshot.job.id)
+              }
+              .disabled(snapshot.isAdopted)
+              .help("Open in external terminal")
             }
-            .disabled(snapshot.pid == nil || snapshot.isAdopted)
-            .help("Open in external terminal")
           }
           .labelStyle(StuffActionLabelStyle())
           .buttonStyle(StuffButtonStyle())
-          if let port = snapshot.listeningPorts.first {
+          if snapshot.pid != nil, let port = snapshot.listeningPorts.first {
             Button {
               if let url = URL(string: "http://localhost:\(port)") {
                 NSWorkspace.shared.open(url)
@@ -503,25 +516,31 @@ private struct JobDetailView: View {
           .font(RunStuffStyle.heading)
           .lineLimit(1)
         HStack(spacing: 6) {
-          if snapshot.reportedPortConflict != nil {
-            Image(systemName: "exclamationmark.triangle.fill")
-              .foregroundStyle(RunStuffStyle.coral)
-          } else {
-            HealthMark(
-              health: snapshot.health,
-              running: snapshot.pid != nil,
-              runningColor: RunStuffStyle.mint)
-          }
-          Text(
-            snapshot.reportedPortConflict != nil
-              ? "Check output · \(snapshot.state.label)" : snapshot.state.label
-          )
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          if let pid = snapshot.pid {
-            Text(verbatim: "PID \(pid)")
-              .font(.caption.monospacedDigit())
+          if snapshot.pid == nil && !lifecycleBusy {
+            Text("Not running")
+              .font(.caption)
               .foregroundStyle(.secondary)
+          } else {
+            if snapshot.reportedPortConflict != nil {
+              Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(RunStuffStyle.coral)
+            } else {
+              HealthMark(
+                health: snapshot.health,
+                running: snapshot.pid != nil,
+                runningColor: RunStuffStyle.mint)
+            }
+            Text(
+              snapshot.reportedPortConflict != nil
+                ? "Check output · \(snapshot.state.label)" : snapshot.state.label
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            if let pid = snapshot.pid {
+              Text(verbatim: "PID \(pid)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
           }
         }
       }
@@ -535,33 +554,54 @@ private struct JobDetailView: View {
         StuffButtonStyle(tint: snapshot.pid == nil ? RunStuffStyle.mint : RunStuffStyle.coral)
       )
       .help(snapshot.pid == nil ? "Start \(snapshot.job.name)" : "Stop \(snapshot.job.name)")
+      .disabled(lifecycleBusy)
     }
     .padding(.horizontal, 16)
     .frame(height: 74)
     .background(RunStuffStyle.surface)
   }
 
+  private var lifecycleBusy: Bool {
+    switch snapshot.state {
+    case .starting, .stopping: true
+    default: false
+    }
+  }
+
   private var footer: some View {
     HStack {
       Button {
-        model.restart(snapshot.job.id)
+        if snapshot.pid == nil {
+          model.start(snapshot.job.id)
+        } else {
+          model.restart(snapshot.job.id)
+        }
       } label: {
-        Label("Restart", systemImage: "arrow.clockwise")
+        Label(
+          snapshot.pid == nil ? "Start" : "Restart",
+          systemImage: snapshot.pid == nil ? "play.fill" : "arrow.clockwise")
       }
       .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
-      .disabled(snapshot.isAdopted)
-      .help("Restart \(snapshot.job.name)")
+      .disabled(snapshot.isAdopted || lifecycleBusy)
+      .help(snapshot.pid == nil ? "Start \(snapshot.job.name)" : "Restart \(snapshot.job.name)")
       Spacer()
       Button {
-        model.openTerminal(snapshot.job.id)
+        model.openHistory(jobID: snapshot.job.id)
       } label: {
-        Image(systemName: "terminal")
+        Image(systemName: "clock.arrow.circlepath")
       }
-      .accessibilityLabel("View Output")
-      .disabled(snapshot.isAdopted)
-      .help(
-        snapshot.isAdopted
-          ? "Output is unavailable for a process adopted after RunStuff quit" : "View output")
+      .accessibilityLabel("History")
+      .help("Run history for \(snapshot.job.name)")
+      if snapshot.pid != nil {
+        Button {
+          model.openTerminal(snapshot.job.id)
+        } label: {
+          Image(systemName: "terminal")
+        }
+        .accessibilityLabel("View Output")
+        .disabled(snapshot.isAdopted)
+        .help(snapshot.isAdopted ? "Output is unavailable for an adopted process" : "View output")
+      }
       Button(role: .destructive) {
         confirmsDelete = true
       } label: {
@@ -721,7 +761,7 @@ private func elapsed(since start: ContinuousClock.Instant) -> String {
   return "\(seconds / 3_600)h \((seconds % 3_600) / 60)m"
 }
 
-private func downsample(_ metrics: [JobMetric], maximumCount: Int) -> [JobMetric] {
+func downsample(_ metrics: [JobMetric], maximumCount: Int) -> [JobMetric] {
   guard metrics.count > maximumCount else { return metrics }
   let bucketSize = Int(ceil(Double(metrics.count) / Double(maximumCount)))
   return stride(from: 0, to: metrics.count, by: bucketSize).map { start in

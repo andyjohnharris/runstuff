@@ -7,6 +7,8 @@ import Sparkle
 @MainActor
 final class AppModel: ObservableObject {
   @Published private(set) var jobs: [JobSnapshot] = []
+  @Published private(set) var history: [JobRunRecord] = []
+  @Published var historyJobFilter: UUID?
   @Published var banner: String?
   @Published var editorJob: Job?
   @Published var orphans: [RuntimeRecord] = []
@@ -19,6 +21,7 @@ final class AppModel: ObservableObject {
   var closePanel: (() -> Void)?
   private lazy var editorWindow = JobEditorWindowController(model: self)
   private lazy var terminalWindows = TerminalWindowRegistry(model: self)
+  private lazy var historyWindow = HistoryWindowController(model: self)
   private var previewWindows: [UUID: PreviewTerminalWindowController] = [:]
   private var visibleTerminals: Set<UUID> = []
   private var panelVisible = false
@@ -94,6 +97,7 @@ final class AppModel: ObservableObject {
     }
     Task {
       jobs = await supervisor.snapshots()
+      history = await supervisor.runHistory()
       do {
         try await supervisor.startWatchingConfiguration()
       } catch {
@@ -131,6 +135,12 @@ final class AppModel: ObservableObject {
 
   func openTerminal(_ jobID: UUID) {
     terminalWindows.show(jobID: jobID)
+    closePanel?()
+  }
+
+  func openHistory(jobID: UUID? = nil) {
+    historyJobFilter = jobID
+    historyWindow.show()
     closePanel?()
   }
 
@@ -225,9 +235,10 @@ final class AppModel: ObservableObject {
     updateForegroundSampling()
   }
 
-  private func updateActivationPolicy() {
+  func updateActivationPolicy() {
     let policy: NSApplication.ActivationPolicy =
-      visibleTerminals.isEmpty && previewWindows.isEmpty ? .accessory : .regular
+      visibleTerminals.isEmpty && previewWindows.isEmpty && !historyWindow.isOpen
+      ? .accessory : .regular
     if NSApp.activationPolicy() != policy {
       NSApp.setActivationPolicy(policy)
     }
@@ -438,8 +449,10 @@ final class AppModel: ObservableObject {
         "\(records.count) process\(records.count == 1 ? "" : "es") from a previous session are still running."
     case .configurationReloaded:
       jobs = await supervisor.snapshots()
+    case .historyChanged:
+      history = await supervisor.runHistory()
     case .persistenceFailed(let message):
-      banner = "Could not reload config.json: \(message)"
+      banner = "RunStuff data error: \(message)"
     }
   }
 }

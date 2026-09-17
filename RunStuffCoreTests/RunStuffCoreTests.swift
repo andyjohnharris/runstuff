@@ -39,6 +39,26 @@ final class OutputSpoolTests: XCTestCase {
     XCTAssertEqual(spool.length, 3072)
     XCTAssertEqual(spool.retainedLength, 0)
     XCTAssertEqual(spool.chunks.count, 0)
+    XCTAssertEqual(
+      spool.historyOutput,
+      Data(Array(repeating: 0x78, count: 1024) + Array(repeating: 0x79, count: 2048)))
+  }
+
+  func testHistoryTailWrapsInByteOrderAfterReplayStops() throws {
+    let spool = try OutputSpool(directory: FileManager.default.temporaryDirectory.path)
+    defer { spool.close() }
+    spool.stopRetaining()
+    let size = 262144
+    let total = size * 2 + 73
+    for start in stride(from: 0, to: total, by: 17003) {
+      let end = min(total, start + 17003)
+      spool.append((start..<end).map { UInt8($0 % 251) }, at: .now)
+    }
+    XCTAssertEqual(spool.historyOutput, Data(((total - size)..<total).map { UInt8($0 % 251) }))
+    spool.append(Array(repeating: 0xFE, count: size + 1), at: .now)
+    spool.append([1, 2, 3], at: .now)
+    XCTAssertEqual(spool.historyOutput, Data(Array(repeating: 0xFE, count: size - 3) + [1, 2, 3]))
+    XCTAssertEqual(spool.retainedLength, 0)
   }
 }
 

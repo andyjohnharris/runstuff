@@ -19,6 +19,7 @@ public struct JobSnapshot: Sendable, Equatable {
 }
 
 public enum SupervisorEvent: Sendable {
+  case historyChanged
   case jobChanged(JobSnapshot)
   case jobExited(
     jobID: UUID, status: ExitStatus, userInitiated: Bool, failure: FailureDiagnostic?,
@@ -60,6 +61,14 @@ public actor Supervisor {
   public nonisolated let events: AsyncStream<SupervisorEvent>
 
   private struct Entry {
+    struct RunCapture {
+      let job: Job
+      let startedAt: Date
+      var rawOutput = Data()
+      var outputTruncated = false
+      var isRecovered = false
+    }
+
     var job: Job
     var state: RunState = .idle
     var health: Health = .ok
@@ -88,6 +97,7 @@ public actor Supervisor {
     var readyDetected = false
     var highCPUDetector = SustainedHighCPUDetector()
     var nextOutputOffset: UInt64 = 0
+    var runCapture: RunCapture?
 
     var activePID: pid_t? { runtime?.pid ?? adopted?.pid }
     var activePGID: pid_t? { runtime?.pgid ?? adopted?.pgid }
@@ -116,9 +126,11 @@ public actor Supervisor {
   private let runtimeRegistry: RuntimeRegistry
   private let ttyHelperPath: String
   private let spoolDirectory: String
+  private let historyStore: RunHistoryStore
   private let eventContinuation: AsyncStream<SupervisorEvent>.Continuation
   private var entries: [UUID: Entry]
   private var runtimeRecords: [RuntimeRecord]
+  private var history: [JobRunRecord]
   private var metricsTask: Task<Void, Never>?
   private var configurationWatcher: ConfigurationWatcher?
   private var configurationTask: Task<Void, Never>?
@@ -142,11 +154,17 @@ public actor Supervisor {
     self.runtimeRegistry = runtimeRegistry
     self.ttyHelperPath = ttyHelperPath
     self.spoolDirectory = spoolDirectory
+    historyStore = RunHistoryStore(configURL: configStore.fileURL)
+    let loadedHistory = historyStore.load()
+    history = loadedHistory.records
     entries = Dictionary(uniqueKeysWithValues: configuration.jobs.map { ($0.id, Entry(job: $0)) })
     let (stream, continuation) = AsyncStream.makeStream(
       of: SupervisorEvent.self, bufferingPolicy: .bufferingNewest(1024))
     events = stream
     eventContinuation = continuation
+    for message in loadedHistory.errors {
+      continuation.yield(.persistenceFailed(message))
+    }
 
     try FileManager.default.createDirectory(
       at: URL(fileURLWithPath: spoolDirectory), withIntermediateDirectories: true)
@@ -230,6 +248,10 @@ public actor Supervisor {
     entries.values.map(\.snapshot).sorted {
       $0.job.name.localizedCaseInsensitiveCompare($1.job.name) == .orderedAscending
     }
+  }
+
+  public func runHistory() -> [JobRunRecord] {
+    history.sorted { $0.endedAt > $1.endedAt }
   }
 
   public func snapshot(jobID: UUID) -> JobSnapshot? {
@@ -363,6 +385,7 @@ public actor Supervisor {
     entry.readyDetected = false
     entry.highCPUDetector = SustainedHighCPUDetector()
     entry.nextOutputOffset = 0
+    entry.runCapture = Entry.RunCapture(job: entry.job, startedAt: Date())
     entries[jobID] = entry
     terminalFeeds[jobID]?.values.forEach { $0.yield(.reset) }
     publish(jobID)
@@ -376,9 +399,11 @@ public actor Supervisor {
         error.errnoValue == ENOENT
         ? RunStuffMessage.commandNotFound : String(describing: error)
       setFailedToStart(jobID: jobID, message: message)
+      archiveFailedStart(jobID: jobID, message: message)
       return
     } catch {
       setFailedToStart(jobID: jobID, message: String(describing: error))
+      archiveFailedStart(jobID: jobID, message: String(describing: error))
       return
     }
 
@@ -392,12 +417,15 @@ public actor Supervisor {
         _ = await runtime.stop(grace: .zero)
         await runtime.close()
         setFailedToStart(jobID: jobID, message: "Could not persist runtime state: \(error)")
+        archiveFailedStart(jobID: jobID, message: "Could not persist runtime state: \(error)")
         throw SupervisorError.persistence(String(describing: error))
       }
     } else if await runtime.exitStatus == nil {
       _ = await runtime.stop(grace: .zero)
       await runtime.close()
       setFailedToStart(
+        jobID: jobID, message: "Started process disappeared before it could be supervised")
+      archiveFailedStart(
         jobID: jobID, message: "Started process disappeared before it could be supervised")
       throw SupervisorError.processDisappeared
     }
@@ -467,6 +495,7 @@ public actor Supervisor {
       guard report.leaderExit != nil, report.remaining.isEmpty else {
         throw SupervisorError.processDidNotStop(jobID)
       }
+      try await waitForCompletion(jobID: jobID, pid: runtime.pid)
     } else if let record = entry.adopted {
       try await stopOrphanSession(record, grace: grace)
       finishAdopted(jobID: jobID, record: record)
@@ -495,6 +524,13 @@ public actor Supervisor {
       for await (id, stopped) in group where !stopped { failed.append(id) }
       return failed
     }
+    for (id, runtime) in running where !failures.contains(id) {
+      do {
+        try await waitForCompletion(jobID: id, pid: runtime.pid)
+      } catch {
+        failures.append(id)
+      }
+    }
     let adoptedIDs = entries.compactMap { id, entry in entry.adopted == nil ? nil : id }
     for id in adoptedIDs {
       do {
@@ -508,17 +544,18 @@ public actor Supervisor {
 
   public func restart(jobID: UUID, grace: Duration = .seconds(5)) async throws {
     try await stop(jobID: jobID, grace: grace)
-    if let runtime = entries[jobID]?.runtime {
-      _ = await runtime.waitForExit(timeout: .seconds(5))
-      _ = await runtime.waitForDrainEnd(timeout: .seconds(5))
-      await runtime.close()
-      if entries[jobID]?.runtime?.pid == runtime.pid {
-        entries[jobID]?.runtime = nil
-        runtimeRecords.removeAll { $0.jobID == jobID && $0.pid == runtime.pid }
-        try runtimeRegistry.save(runtimeRecords)
-      }
-    }
     try await start(jobID: jobID)
+  }
+
+  private func waitForCompletion(jobID: UUID, pid: pid_t) async throws {
+    // Stop All and Quit must not exit the app before final output is archived.
+    let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+    while entries[jobID]?.runtime?.pid == pid {
+      guard ContinuousClock.now < deadline else {
+        throw SupervisorError.processDidNotStop(jobID)
+      }
+      try await Task.sleep(for: .milliseconds(10))
+    }
   }
 
   public func write(_ bytes: [UInt8], jobID: UUID) async throws {
@@ -543,10 +580,20 @@ public actor Supervisor {
     entry.adopted = record
     entry.state = .running
     entry.health = .ok
+    entry.stopRequested = false
+    entry.exitStatus = nil
+    entry.failure = nil
+    entry.portConflict = nil
     entry.startedAt = nil
     entry.startedInstant = nil
     entry.metric = nil
     entry.metricHistory = []
+    entry.runCapture = Entry.RunCapture(
+      job: entry.job,
+      startedAt: Date(
+        timeIntervalSince1970: Double(record.startSeconds)
+          + Double(record.startMicroseconds) / 1_000_000),
+      isRecovered: true)
     entry.listeningPorts = ProcessTable.listeningPorts(pgid: record.pgid)
     entries[jobID] = entry
     publish(jobID)
@@ -705,6 +752,9 @@ public actor Supervisor {
       case .exited(let code) where code == 127 && !entry.stopRequested:
         entry.state = .failedToStart(RunStuffMessage.commandNotFound)
         entry.health = .error(reason: "Command not found", since: Date())
+        entry.failure = FailureDiagnostic(
+          summary: RunStuffMessage.commandNotFound,
+          evidence: RunStuffMessage.commandNotFound, conflictingPort: nil)
         entry.restartPending = entry.job.restartOnCrash
       case .exited(let code):
         entry.state = .exited(code: code)
@@ -741,16 +791,25 @@ public actor Supervisor {
   }
 
   private func completeIfFinished(jobID: UUID, pid: pid_t) async {
-    guard var entry = entries[jobID], entry.runtime?.pid == pid,
-      let status = entry.exitStatus, entry.drainSeen, entry.outputStreamEnded,
-      let runtime = entry.runtime
+    guard let pending = entries[jobID], pending.runtime?.pid == pid,
+      let status = pending.exitStatus, pending.drainSeen, pending.outputStreamEnded,
+      let runtime = pending.runtime
     else { return }
+    let output = await runtime.historyOutput()
+    guard var entry = entries[jobID], entry.runtime?.pid == pid else { return }
+    entry.runCapture?.rawOutput = output.data
+    entry.runCapture?.outputTruncated = output.truncated
     if !entry.exitUserInitiated {
       if status != .exited(code: 0) { entry.failure = entry.portConflict ?? entry.failure }
       if let failure = entry.failure {
         entry.health = .error(reason: failure.summary, since: Date())
       }
     }
+    archive(
+      entry: &entry,
+      outcome: outcome(
+        status: status, stopped: entry.exitUserInitiated,
+        failedToStart: ifFailedToStart(entry.state)))
     entry.runtime = nil
     entry.previousReading = nil
     entry.listeningPorts = []
@@ -825,6 +884,52 @@ public actor Supervisor {
     entries[jobID]?.health = .error(reason: message, since: Date())
     eventContinuation.yield(.jobFailedToStart(jobID: jobID, message: message))
     publish(jobID)
+  }
+
+  private func ifFailedToStart(_ state: RunState) -> Bool {
+    if case .failedToStart = state { return true }
+    return false
+  }
+
+  private func outcome(status: ExitStatus, stopped: Bool, failedToStart: Bool) -> String {
+    if stopped { return "Stopped" }
+    if failedToStart { return "Failed to start" }
+    switch status {
+    case .exited(let code): return "Exit \(code)"
+    case .signalled(let signal, _): return "Signal \(signal)"
+    }
+  }
+
+  private func archiveFailedStart(jobID: UUID, message: String) {
+    guard var entry = entries[jobID], entry.runCapture != nil else { return }
+    let diagnostic = FailureDiagnostic(summary: message, evidence: message, conflictingPort: nil)
+    entry.failure = diagnostic
+    archive(entry: &entry, outcome: "Failed to start")
+    entries[jobID] = entry
+  }
+
+  private func archive(entry: inout Entry, outcome: String) {
+    guard let capture = entry.runCapture else { return }
+    entry.runCapture = nil
+    let failure = entry.failure ?? entry.portConflict
+    let diagnostics = entry.job == capture.job ? entry.diagnostics : nil
+    let record = JobRunRecord(
+      jobID: capture.job.id, name: capture.job.name, command: capture.job.command,
+      workingDirectory: capture.job.workingDirectory.path,
+      shellMode: capture.job.shellMode.rawValue, startedAt: capture.startedAt, endedAt: Date(),
+      outcome: outcome, failureSummary: failure?.summary, failureEvidence: failure?.evidence,
+      rawOutput: capture.rawOutput,
+      outputTruncated: capture.outputTruncated, isRecovered: capture.isRecovered,
+      conflictingPort: failure?.conflictingPort, exitStatus: entry.exitStatus?.description,
+      resolvedExecutable: diagnostics?.resolvedExecutable,
+      executableVersion: diagnostics?.executableVersion, metrics: entry.metricHistory)
+    history.append(record)
+    eventContinuation.yield(.historyChanged)
+    do {
+      try historyStore.save(record)
+    } catch {
+      eventContinuation.yield(.persistenceFailed("Could not save run history: \(error)"))
+    }
   }
 
   private func sampleMetrics() {
@@ -957,11 +1062,13 @@ public actor Supervisor {
     orphanMonitorTasks[jobID] = nil
     portProbeTasks[jobID]?.cancel()
     portProbeTasks[jobID] = nil
-    if entries[jobID]?.adopted == record {
-      entries[jobID]?.adopted = nil
-      entries[jobID]?.state = .idle
-      entries[jobID]?.metric = nil
-      entries[jobID]?.listeningPorts = []
+    if var entry = entries[jobID], entry.adopted == record {
+      archive(entry: &entry, outcome: entry.stopRequested ? "Stopped" : "Outcome unavailable")
+      entry.adopted = nil
+      entry.state = .idle
+      entry.metric = nil
+      entry.listeningPorts = []
+      entries[jobID] = entry
       publish(jobID)
     }
     runtimeRecords.removeAll { $0 == record }

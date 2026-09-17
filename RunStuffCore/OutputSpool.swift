@@ -1,4 +1,5 @@
 import Darwin
+import Foundation
 
 /// Append-only, file-backed retention of everything read from a PTY master,
 /// with the arrival time of each read. A consumer that attaches late can
@@ -14,6 +15,14 @@ final class OutputSpool {
   private let path: String
   private var retaining = true
   private(set) var length: UInt64 = 0
+  private var tail = [UInt8](repeating: 0, count: JobRunRecord.maximumOutputBytes)
+  private var tailEnd = 0
+
+  var historyOutput: Data {
+    if length < UInt64(tail.count) { return Data(tail.prefix(Int(length))) }
+    return Data(tail[tailEnd...] + tail[..<tailEnd])
+  }
+
   var retainedLength: off_t {
     var info = stat()
     return fstat(fd, &info) == 0 ? info.st_size : -1
@@ -30,6 +39,19 @@ final class OutputSpool {
   }
 
   func append(_ bytes: [UInt8], at instant: ContinuousClock.Instant) {
+    // Retain history before subscribers can drop chunks, even after disk replay is discarded.
+    if bytes.count >= tail.count {
+      tail = Array(bytes.suffix(tail.count))
+      tailEnd = 0
+    } else {
+      var offset = 0
+      while offset < bytes.count {
+        let count = min(tail.count - tailEnd, bytes.count - offset)
+        tail.replaceSubrange(tailEnd..<(tailEnd + count), with: bytes[offset..<(offset + count)])
+        tailEnd = (tailEnd + count) % tail.count
+        offset += count
+      }
+    }
     guard retaining else {
       length += UInt64(bytes.count)
       return

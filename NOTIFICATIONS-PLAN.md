@@ -1,5 +1,7 @@
 # Notification improvements
 
+The run-history feature supersedes this plan's session-only retention and completed-detail layout. Finished Stuff now shows static configuration; its History entry retains evidence, output and Check Port Owner across launches. The notification rules below remain unchanged.
+
 ## Problem
 
 RunStuff attempts to notify on unexpected exits, but suppresses foreground presentation and discards permission and delivery errors. Exit alerts contain little context. Signal rules discard the matching line, and a later nonzero exit replaces their reason with an exit code.

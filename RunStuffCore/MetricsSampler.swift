@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-public struct JobMetric: Sendable, Equatable {
+public struct JobMetric: Codable, Sendable, Equatable {
   public let timestamp: Date
   public let cpuPercent: Double
   public let residentBytes: UInt64

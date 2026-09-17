@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		110000000000000000000001 /* HistoryWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210000000000000000000001 /* HistoryWindowController.swift */; };
+		110000000000000000000002 /* JobRunRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210000000000000000000002 /* JobRunRecord.swift */; };
 		100000000000000000000001 /* RunStuffApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* RunStuffApp.swift */; };
 		100000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* AppModel.swift */; };
 		100000000000000000000003 /* JobEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* JobEditorView.swift */; };
@@ -138,6 +140,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		210000000000000000000001 /* HistoryWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryWindowController.swift; sourceTree = "<group>"; };
+		210000000000000000000002 /* JobRunRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobRunRecord.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* RunStuffApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunStuffApp.swift; sourceTree = "<group>"; };
 		200000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		200000000000000000000003 /* JobEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobEditorView.swift; sourceTree = "<group>"; };
@@ -295,6 +299,7 @@
 				200000000000000000000008 /* RunStuffError.wav */,
 				200000000000000000000006 /* StatusItemController.swift */,
 				200000000000000000000007 /* TerminalWindowController.swift */,
+				210000000000000000000001 /* HistoryWindowController.swift */,
 			);
 			path = RunStuff;
 			sourceTree = SOURCE_ROOT;
@@ -321,6 +326,7 @@
 				200000000000000000000019 /* SpawnSpec.swift */,
 				20000000000000000000001F /* Supervisor.swift */,
 				20000000000000000000002D /* UnixSocket.swift */,
+				210000000000000000000002 /* JobRunRecord.swift */,
 			);
 			path = RunStuffCore;
 			sourceTree = SOURCE_ROOT;
@@ -566,6 +572,7 @@
 				100000000000000000000001 /* RunStuffApp.swift in Sources */,
 				100000000000000000000006 /* StatusItemController.swift in Sources */,
 				100000000000000000000007 /* TerminalWindowController.swift in Sources */,
+				110000000000000000000001 /* HistoryWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -592,6 +599,7 @@
 				100000000000000000000019 /* SpawnSpec.swift in Sources */,
 				10000000000000000000001F /* Supervisor.swift in Sources */,
 				10000000000000000000002D /* UnixSocket.swift in Sources */,
+				110000000000000000000002 /* JobRunRecord.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

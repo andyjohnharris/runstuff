@@ -18,6 +18,187 @@ final class SupervisorTests: XCTestCase {
     let output = await supervisor.output(jobID: context.job.id)
     XCTAssertEqual(output.map(\.stripped).joined(), "hello\r\n")
     XCTAssertEqual(try context.registry.load(), [])
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.first?.exitStatus, "exited(0)")
+    XCTAssertEqual(history.first?.metrics, snapshot.metricHistory)
+  }
+
+  func testRunHistorySeparatesRunsAndSurvivesRenameDeletionAndRelaunch() async throws {
+    let context = try TestContext(
+      script: "if [ -e once ]; then printf second; else touch once; printf first; fi\n")
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+
+    var renamed = context.job
+    renamed.name = "Renamed"
+    renamed.command = "changed command"
+    try await supervisor.update(renamed)
+    try await supervisor.delete(jobID: renamed.id)
+
+    let relaunched = try Supervisor(
+      configuration: RunStuffConfiguration(), configStore: context.configStore,
+      runtimeRegistry: context.registry, ttyHelperPath: context.helperPath,
+      spoolDirectory: context.directory.path)
+    let history = await relaunched.runHistory()
+    XCTAssertEqual(history.count, 2)
+    XCTAssertTrue(history.allSatisfy { $0.name == "Test" && $0.command == context.job.command })
+    XCTAssertEqual(
+      history.map { String(decoding: $0.rawOutput, as: UTF8.self) }, ["second", "first"])
+    XCTAssertEqual(Set(history.map(\.id)).count, 2)
+    XCTAssertTrue(history.allSatisfy { !$0.outputTruncated })
+  }
+
+  func testManualRestartArchivesFinalOutputAndLaunchTimeName() async throws {
+    let context = try TestContext(
+      script: """
+        if [ -e once ]; then printf second; exit 0; fi
+        trap 'printf final; exit 0' TERM
+        printf ready
+        touch once
+        while :; do sleep 0.1; done
+        """)
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+    while !FileManager.default.fileExists(
+      atPath: context.directory.appendingPathComponent("once").path)
+    {
+      guard ContinuousClock.now < deadline else { throw TestFailure.timedOut }
+      try await Task.sleep(for: .milliseconds(10))
+    }
+    var renamed = context.job
+    renamed.name = "Next run"
+    try await supervisor.update(renamed)
+    try await supervisor.restart(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.map(\.name), ["Next run", "Test"])
+    XCTAssertEqual(history.map(\.outcome), ["Exit 0", "Stopped"])
+    XCTAssertEqual(history.first?.rawOutput, Data("second".utf8))
+    XCTAssertTrue(
+      String(decoding: try XCTUnwrap(history.last).rawOutput, as: UTF8.self).hasSuffix("final"))
+  }
+
+  func testHistoryLimitDoesNotMarkAnExactlyFullTailAsTruncated() async throws {
+    let context = try TestContext(script: "head -c 262144 /dev/zero\n")
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.first?.rawOutput.count, 262144)
+    XCTAssertEqual(history.first?.outputTruncated, false)
+  }
+
+  func testStopAllPersistsFinalOutputBeforeReturning() async throws {
+    let script = "trap 'printf final; exit 0' TERM\ntouch ready\nwhile :; do sleep 0.1; done\n"
+    let first = try TestContext(script: script)
+    let second = try TestContext(script: script)
+    defer {
+      first.remove()
+      second.remove()
+    }
+    let supervisor = try first.makeSupervisor(signals: [])
+    try await supervisor.add(second.job)
+    try await supervisor.start(jobID: first.job.id)
+    try await supervisor.start(jobID: second.job.id)
+    let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+    for context in [first, second] {
+      while !FileManager.default.fileExists(
+        atPath: context.directory.appendingPathComponent("ready").path)
+      {
+        guard ContinuousClock.now < deadline else { throw TestFailure.timedOut }
+        try await Task.sleep(for: .milliseconds(10))
+      }
+    }
+    let failures = await supervisor.stopAll()
+    XCTAssertEqual(failures, [])
+    let persisted = RunHistoryStore(configURL: first.configStore.fileURL).load()
+    XCTAssertEqual(Set(persisted.records.map(\.jobID)), [first.job.id, second.job.id])
+    XCTAssertTrue(
+      persisted.records.allSatisfy {
+        $0.outcome == "Stopped" && String(decoding: $0.rawOutput, as: UTF8.self).hasSuffix("final")
+      })
+  }
+
+  func testRunHistoryKeepsExactLatest256KiB() async throws {
+    let context = try TestContext(
+      script: "head -c 300000 /dev/zero | tr '\\000' A; printf Z\n")
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+
+    let history = await supervisor.runHistory()
+    let record = try XCTUnwrap(history.first)
+    XCTAssertEqual(record.rawOutput.count, 256 * 1024)
+    XCTAssertTrue(record.outputTruncated)
+    XCTAssertEqual(record.rawOutput.last, Character("Z").asciiValue)
+    XCTAssertTrue(record.rawOutput.dropLast().allSatisfy { $0 == Character("A").asciiValue })
+  }
+
+  func testSpawnFailureIsArchivedOnce() async throws {
+    let context = try TestContext(script: "exit 0\n")
+    defer { context.remove() }
+    var job = context.job
+    job.command = context.directory.appendingPathComponent("missing").path
+    let supervisor = try context.makeSupervisor(job: job, signals: [])
+    try await supervisor.start(jobID: job.id)
+    _ = try await waitForCompletion(supervisor, jobID: job.id)
+
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.count, 1)
+    XCTAssertEqual(history.first?.outcome, "Failed to start")
+    XCTAssertNotNil(history.first?.failureSummary)
+  }
+
+  func testHistorySkipsCorruptRecordsAndKeepsPrivateFiles() async throws {
+    let context = try TestContext(script: "printf saved\n")
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+    let store = RunHistoryStore(configURL: context.configStore.fileURL)
+    let saved = store.load()
+    XCTAssertEqual(saved.records.count, 1)
+    let record = try XCTUnwrap(saved.records.first)
+    let file = store.directory.appendingPathComponent("\(record.id.uuidString).json")
+    let permissions =
+      try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? NSNumber
+    XCTAssertEqual(permissions?.intValue, 0o600)
+    let broken = store.directory.appendingPathComponent("broken.json")
+    try Data("not JSON".utf8).write(to: broken)
+    let reloaded = store.load()
+    XCTAssertEqual(reloaded.records, saved.records)
+    XCTAssertEqual(reloaded.errors.count, 1)
+    XCTAssertEqual(try Data(contentsOf: broken), Data("not JSON".utf8))
+  }
+
+  func testHistorySaveFailureKeepsRunAvailableForThisSession() async throws {
+    let context = try TestContext(script: "printf unsaved\n")
+    defer { context.remove() }
+    let supervisor = try context.makeSupervisor(signals: [])
+    try Data().write(to: context.directory.appendingPathComponent("history"))
+    try await supervisor.start(jobID: context.job.id)
+    _ = try await waitForCompletion(supervisor, jobID: context.job.id)
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.count, 1)
+    XCTAssertEqual(history.first?.rawOutput, Data("unsaved".utf8))
+    for await event in supervisor.events {
+      if case .persistenceFailed(let message) = event {
+        XCTAssertTrue(message.contains("run history"))
+        break
+      }
+      if case .jobExited = event {
+        XCTFail("Missing history persistence error")
+        break
+      }
+    }
   }
 
   func testANSIWrappedSignalRuleChangesHealthWithoutChangingRawOutput() async throws {
@@ -96,6 +277,9 @@ final class SupervisorTests: XCTestCase {
     try await supervisor.start(jobID: context.job.id)
     let snapshot = try await waitForCompletion(supervisor, jobID: context.job.id)
     XCTAssertEqual(snapshot.failure?.conflictingPort, 3400)
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.first?.conflictingPort, 3400)
+    XCTAssertEqual(history.first?.failureEvidence, "listen tcp :3400: bind: address already in use")
     var sawFinalSnapshot = false
     for await event in supervisor.events {
       if case .jobChanged(let snapshot) = event, snapshot.pid == nil,
@@ -309,6 +493,11 @@ final class SupervisorTests: XCTestCase {
     let stopped = await relaunched.snapshot(jobID: context.job.id)
     XCTAssertEqual(stopped?.state, .idle)
     XCTAssertEqual(try context.registry.load(), [])
+    let history = await relaunched.runHistory()
+    XCTAssertEqual(history.count, 1)
+    XCTAssertEqual(history.first?.isRecovered, true)
+    XCTAssertEqual(history.first?.outcome, "Stopped")
+    XCTAssertEqual(history.first?.rawOutput, Data())
   }
 
   func testDirectCommandNotFoundUsesShellModeHint() async throws {
@@ -358,6 +547,9 @@ final class SupervisorTests: XCTestCase {
     .split(separator: "\n").count
     XCTAssertEqual(runs, 3)
     XCTAssertGreaterThanOrEqual((ContinuousClock.now - started).seconds, 3)
+    let history = await supervisor.runHistory()
+    XCTAssertEqual(history.count, 3)
+    XCTAssertTrue(history.allSatisfy { $0.outcome == "Exit 1" })
   }
 
   func testPromptDetectionRequiresAnUnterminatedPromptShape() {

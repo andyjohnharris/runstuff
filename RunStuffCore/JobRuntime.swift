@@ -1,5 +1,6 @@
 import Darwin
 import Dispatch
+import Foundation
 
 /// Production runtime for one spawned process and its PTY. Owns the master fd, the drain, exit
 /// detection and reaping, and the group/session kill path. Plan §1.
@@ -177,6 +178,10 @@ public actor JobRuntime {
     for continuation in subscribers.values {
       continuation.yield(chunk)
     }
+  }
+
+  func historyOutput() -> (data: Data, truncated: Bool) {
+    (spool.historyOutput, spool.length > UInt64(JobRunRecord.maximumOutputBytes))
   }
 
   private func endDrain(_ reason: DrainEnd) {
