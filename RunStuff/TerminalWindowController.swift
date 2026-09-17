@@ -31,6 +31,7 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
   private let footer = NSVisualEffectView()
   private let statusLabel = NSTextField(labelWithString: "")
   private let restartButton = NSButton(title: "Restart", target: nil, action: nil)
+  private let stopButton = NSButton(title: "Stop", target: nil, action: nil)
   private var cancellables: Set<AnyCancellable> = []
   private var outputTask: Task<Void, Never>?
   private var terminalTitle: String?
@@ -70,8 +71,12 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
     restartButton.controlSize = .small
     restartButton.target = self
     restartButton.action = #selector(restart)
+    stopButton.bezelStyle = .rounded
+    stopButton.controlSize = .small
+    stopButton.target = self
+    stopButton.action = #selector(stop)
 
-    let footerStack = NSStackView(views: [statusLabel, restartButton])
+    let footerStack = NSStackView(views: [statusLabel, restartButton, stopButton])
     footerStack.translatesAutoresizingMaskIntoConstraints = false
     footerStack.orientation = .horizontal
     footerStack.alignment = .centerY
@@ -125,10 +130,10 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
   func show() {
     guard let window else { return }
     update(using: model.jobs.first(where: { $0.job.id == jobID }))
+    model.terminalVisibilityChanged(jobID: jobID, visible: true)
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
     window.makeFirstResponder(terminalView)
-    model.terminalVisibilityChanged(jobID: jobID, visible: true)
     resizeToTerminal()
   }
 
@@ -161,6 +166,10 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
     model.restart(jobID)
   }
 
+  @objc private func stop() {
+    model.stop(jobID)
+  }
+
   private func receive(_ event: TerminalFeedEvent) {
     switch event {
     case .reset:
@@ -172,14 +181,19 @@ final class TerminalWindowController: NSWindowController, NSWindowDelegate,
   }
 
   private func update(using snapshot: JobSnapshot?) {
-    guard let snapshot else { return }
+    guard let snapshot else {
+      stopButton.isEnabled = false
+      return
+    }
     statusLabel.stringValue = statusText(snapshot.state)
     restartButton.title = snapshot.pid == nil ? "Restart" : "Restart Running Stuff"
     switch snapshot.state {
     case .starting, .stopping:
       restartButton.isEnabled = false
+      stopButton.isEnabled = false
     default:
       restartButton.isEnabled = true
+      stopButton.isEnabled = snapshot.pid != nil
     }
     updateWindowTitle(jobName: snapshot.job.name)
   }

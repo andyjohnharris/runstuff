@@ -7,7 +7,6 @@ import Sparkle
 @MainActor
 final class AppModel: ObservableObject {
   @Published private(set) var jobs: [JobSnapshot] = []
-  @Published private(set) var output: [UUID: [OutputLine]] = [:]
   @Published var banner: String?
   @Published var editorJob: Job?
   @Published var orphans: [RuntimeRecord] = []
@@ -162,8 +161,10 @@ final class AppModel: ObservableObject {
     let controller = PreviewTerminalWindowController(job: previewJob, supervisor: supervisor) {
       [weak self] in
       self?.previewWindows[id] = nil
+      self?.updateActivationPolicy()
     }
     previewWindows[id] = controller
+    updateActivationPolicy()
     controller.show()
     return controller
   }
@@ -220,7 +221,16 @@ final class AppModel: ObservableObject {
     } else {
       visibleTerminals.remove(jobID)
     }
+    updateActivationPolicy()
     updateForegroundSampling()
+  }
+
+  private func updateActivationPolicy() {
+    let policy: NSApplication.ActivationPolicy =
+      visibleTerminals.isEmpty && previewWindows.isEmpty ? .accessory : .regular
+    if NSApp.activationPolicy() != policy {
+      NSApp.setActivationPolicy(policy)
+    }
   }
 
   func stop(_ jobID: UUID) {
@@ -394,8 +404,6 @@ final class AppModel: ObservableObject {
     case .jobFailedToStart(let jobID, let message):
       let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"
       Task { await notifications.failedToStart(jobID: jobID, name: name, message: message) }
-    case .outputChanged(let jobID):
-      output[jobID] = await supervisor.outputTail(jobID: jobID, lineCount: 6)
     case .signalMatched(let jobID, let rule, let line, let shouldNotify):
       if shouldNotify {
         let name = jobs.first(where: { $0.job.id == jobID })?.job.name ?? "Stuff"

@@ -24,7 +24,6 @@ public enum SupervisorEvent: Sendable {
     jobID: UUID, status: ExitStatus, userInitiated: Bool, failure: FailureDiagnostic?,
     reportedPortConflict: FailureDiagnostic?)
   case jobFailedToStart(jobID: UUID, message: String)
-  case outputChanged(jobID: UUID)
   case signalMatched(jobID: UUID, rule: SignalRule, line: String, shouldNotify: Bool)
   case restartScheduled(jobID: UUID, delay: Duration, attempt: Int)
   case restartLoopExhausted(jobID: UUID, attempts: Int)
@@ -131,7 +130,6 @@ public actor Supervisor {
   private var portProbeTasks: [UUID: Task<Void, Never>] = [:]
   private var orphanMonitorTasks: [UUID: Task<Void, Never>] = [:]
   private var promptDetectionTasks: [UUID: Task<Void, Never>] = [:]
-  private var outputNotificationTasks: [UUID: Task<Void, Never>] = [:]
 
   public init(
     configuration: RunStuffConfiguration,
@@ -167,7 +165,6 @@ public actor Supervisor {
     portProbeTasks.values.forEach { $0.cancel() }
     orphanMonitorTasks.values.forEach { $0.cancel() }
     promptDetectionTasks.values.forEach { $0.cancel() }
-    outputNotificationTasks.values.forEach { $0.cancel() }
     for feeds in terminalFeeds.values {
       feeds.values.forEach { $0.finish() }
     }
@@ -241,11 +238,6 @@ public actor Supervisor {
 
   public func output(jobID: UUID) -> [OutputLine] {
     entries[jobID]?.output.lines ?? []
-  }
-
-  public func outputTail(jobID: UUID, lineCount: Int) -> [OutputLine] {
-    guard let lines = entries[jobID]?.output.lines else { return [] }
-    return Array(lines.suffix(lineCount))
   }
 
   public func terminalOutput(jobID: UUID) -> AsyncStream<TerminalFeedEvent> {
@@ -639,23 +631,7 @@ public actor Supervisor {
     entries[jobID] = entry
     terminalFeeds[jobID]?.values.forEach { $0.yield(.bytes(chunk.bytes)) }
     terminalSessionFeeds[jobID]?.values.forEach { $0.yield(.bytes(chunk.bytes)) }
-    scheduleOutputNotification(jobID: jobID, pid: pid)
     if entry.health != previousHealth || entry.readyDetected != wasReady { publish(jobID) }
-  }
-
-  private func scheduleOutputNotification(jobID: UUID, pid: pid_t) {
-    guard outputNotificationTasks[jobID] == nil else { return }
-    outputNotificationTasks[jobID] = Task { [weak self] in
-      try? await Task.sleep(for: .milliseconds(100))
-      guard !Task.isCancelled, let self else { return }
-      await self.emitOutputNotification(jobID: jobID, pid: pid)
-    }
-  }
-
-  private func emitOutputNotification(jobID: UUID, pid: pid_t) {
-    outputNotificationTasks[jobID] = nil
-    guard entries[jobID]?.runtime?.pid == pid else { return }
-    eventContinuation.yield(.outputChanged(jobID: jobID))
   }
 
   private func schedulePromptDetection(entry: inout Entry, jobID: UUID, pid: pid_t) {
@@ -753,8 +729,6 @@ public actor Supervisor {
 
   private func outputEnded(jobID: UUID, pid: pid_t) async {
     guard var entry = entries[jobID], entry.runtime?.pid == pid else { return }
-    outputNotificationTasks[jobID]?.cancel()
-    outputNotificationTasks[jobID] = nil
     let lastSequence = entry.output.lines.last?.sequence
     entry.output.finish(at: Date())
     if let line = entry.output.lines.last, line.sequence != lastSequence {
@@ -763,7 +737,6 @@ public actor Supervisor {
     }
     entry.outputStreamEnded = true
     entries[jobID] = entry
-    eventContinuation.yield(.outputChanged(jobID: jobID))
     await completeIfFinished(jobID: jobID, pid: pid)
   }
 
@@ -786,8 +759,6 @@ public actor Supervisor {
     portProbeTasks[jobID] = nil
     promptDetectionTasks[jobID]?.cancel()
     promptDetectionTasks[jobID] = nil
-    outputNotificationTasks[jobID]?.cancel()
-    outputNotificationTasks[jobID] = nil
     terminalSessionFeeds[jobID]?.values.forEach { $0.finish() }
     terminalSessionFeeds[jobID] = nil
     runtimeRecords.removeAll { $0.jobID == jobID && $0.pid == pid }

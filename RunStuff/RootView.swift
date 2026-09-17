@@ -1,7 +1,6 @@
 import AppKit
 import Charts
 import RunStuffCore
-import SwiftTerm
 import SwiftUI
 
 struct RootView: View {
@@ -301,6 +300,14 @@ private struct JobRow: View {
           .labelStyle(.iconOnly)
           .help("Start \(snapshot.job.name)")
       } else {
+        Button("View Output", systemImage: "terminal") { model.openTerminal(snapshot.job.id) }
+          .labelStyle(.iconOnly)
+          .buttonStyle(StuffButtonStyle(tint: RunStuffStyle.mint))
+          .disabled(snapshot.isAdopted)
+          .help(
+            snapshot.isAdopted
+              ? "Output is unavailable for a process adopted after RunStuff quit"
+              : "View output for \(snapshot.job.name)")
         Button("Stop", systemImage: "stop.fill") { model.stop(snapshot.job.id) }
           .labelStyle(.iconOnly)
           .help("Stop \(snapshot.job.name)")
@@ -435,8 +442,6 @@ private struct JobDetailView: View {
             .animation(reduceMotion ? nil : RunStuffStyle.transition, value: showsPATH)
           }
 
-          outputTail
-
           HStack {
             Button("Edit", systemImage: "pencil") {
               model.showEditor(for: snapshot.job)
@@ -552,6 +557,7 @@ private struct JobDetailView: View {
       } label: {
         Image(systemName: "terminal")
       }
+      .accessibilityLabel("View Output")
       .disabled(snapshot.isAdopted)
       .help(
         snapshot.isAdopted
@@ -575,39 +581,6 @@ private struct JobDetailView: View {
     .padding(.horizontal, 16)
     .frame(height: 58)
     .background(RunStuffStyle.surface)
-  }
-
-  private var outputTail: some View {
-    let lines = model.output[snapshot.job.id, default: []].suffix(6)
-    let placeholder =
-      snapshot.isAdopted
-      ? "Output is unavailable for an adopted process." : "No output yet"
-    return StuffCard {
-      HStack {
-        Label("OUTPUT", systemImage: "terminal")
-          .font(RunStuffStyle.caption)
-          .foregroundStyle(RunStuffStyle.secondary)
-        Spacer()
-        Button("Expand output", systemImage: "arrow.up.left.and.arrow.down.right") {
-          model.openTerminal(snapshot.job.id)
-        }
-        .labelStyle(.iconOnly)
-        .buttonStyle(.plain)
-        .disabled(snapshot.isAdopted)
-      }
-      .padding(12)
-      if lines.isEmpty {
-        Text(placeholder)
-          .font(.system(size: 11, design: .monospaced))
-          .foregroundStyle(.secondary)
-          .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
-          .padding(8)
-      } else {
-        OutputTailView(bytes: lines.flatMap(\.raw))
-          .frame(height: 86)
-      }
-    }
-    .clipShape(RoundedRectangle(cornerRadius: RunStuffStyle.radius))
   }
 
   private var metricCharts: some View {
@@ -746,21 +719,6 @@ private func elapsed(since start: ContinuousClock.Instant) -> String {
   if seconds < 60 { return "\(seconds)s" }
   if seconds < 3_600 { return "\(seconds / 60)m" }
   return "\(seconds / 3_600)h \((seconds % 3_600) / 60)m"
-}
-
-private struct OutputTailView: NSViewRepresentable {
-  let bytes: [UInt8]
-
-  func makeNSView(context: Context) -> TerminalView {
-    let view = TerminalView(frame: .zero, font: .monospacedSystemFont(ofSize: 11, weight: .regular))
-    view.configureNativeColors()
-    return view
-  }
-
-  func updateNSView(_ view: TerminalView, context: Context) {
-    view.getTerminal().resetToInitialState()
-    view.feed(byteArray: bytes[...])
-  }
 }
 
 private func downsample(_ metrics: [JobMetric], maximumCount: Int) -> [JobMetric] {
